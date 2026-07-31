@@ -11,3 +11,6 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+
+# 저장소 최초 생성용 로컬 스크립트 — 게시 대상이 아니다
+deploy.sh
