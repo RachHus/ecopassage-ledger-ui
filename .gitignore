@@ -1,0 +1,13 @@
+# 표준노드링크 원본 — 575MB, 국토교통부 배포본이므로 저장소에 넣지 않는다
+*.gpkg
+*.gpkg-journal
+*.gpkg-wal
+
+# 표준 테이블 정의서 등 산출 문서
+*.xlsx
+*.hwpx
+
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

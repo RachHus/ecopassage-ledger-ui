@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>생태통로 관리대장 입력 UI (시제)</title>
+<style>
+:root{
+  --bg:#f4f6f8; --panel:#fff; --ink:#1b2430; --sub:#5b6b7c; --line:#d8e0e8;
+  --brand:#12609b; --brand-w:#e8f1f8; --ok:#0f7b48; --ok-w:#e7f5ee;
+  --warn:#a4550a; --warn-w:#fdf1e3; --bad:#b3261e; --bad-w:#fdecea;
+  --auto:#f0f4f8; --mono:ui-monospace,"Consolas","D2Coding",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#141a20;--panel:#1c242c;--ink:#e6edf3;--sub:#9bacbd;--line:#2f3b47;
+    --brand:#6fb3e8;--brand-w:#1b2c3b;--ok:#5cc98d;--ok-w:#12301f;
+    --warn:#e8a35c;--warn-w:#33260f;--bad:#f28b82;--bad-w:#3a1c19;--auto:#232d36;}
+}
+:root[data-theme=dark]{--bg:#141a20;--panel:#1c242c;--ink:#e6edf3;--sub:#9bacbd;--line:#2f3b47;
+  --brand:#6fb3e8;--brand-w:#1b2c3b;--ok:#5cc98d;--ok-w:#12301f;
+  --warn:#e8a35c;--warn-w:#33260f;--bad:#f28b82;--bad-w:#3a1c19;--auto:#232d36;}
+:root[data-theme=light]{--bg:#f4f6f8;--panel:#fff;--ink:#1b2430;--sub:#5b6b7c;--line:#d8e0e8;
+  --brand:#12609b;--brand-w:#e8f1f8;--ok:#0f7b48;--ok-w:#e7f5ee;
+  --warn:#a4550a;--warn-w:#fdf1e3;--bad:#b3261e;--bad-w:#fdecea;--auto:#f0f4f8;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.6 "맑은 고딕","Malgun Gothic",system-ui,sans-serif;}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:20px;margin:0 0 4px}
+.lede{color:var(--sub);font-size:13px;margin:0 0 16px}
+
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--sub);flex:none}
+.dot.on{background:var(--ok)} .dot.off{background:var(--bad)}
+.bar code{font:12px var(--mono);background:var(--auto);padding:2px 7px;border-radius:5px}
+
+.tabs{display:flex;gap:6px;margin-bottom:-1px;flex-wrap:wrap}
+.tab{padding:9px 16px;border:1px solid var(--line);border-bottom:none;background:var(--bg);
+  border-radius:9px 9px 0 0;cursor:pointer;color:var(--sub);font-size:13px;font-weight:600}
+.tab[aria-selected=true]{background:var(--panel);color:var(--brand);box-shadow:inset 0 3px 0 var(--brand)}
+.pane{background:var(--panel);border:1px solid var(--line);border-radius:0 10px 10px 10px;padding:18px}
+.pane[hidden]{display:none}
+
+fieldset{border:1px solid var(--line);border-radius:9px;padding:14px 16px 16px;margin:0 0 16px;min-width:0}
+legend{font-weight:700;font-size:13px;color:var(--brand);padding:0 7px}
+fieldset.muted{opacity:.42;background:var(--auto)}
+fieldset.muted legend{color:var(--sub)}
+
+.grid{display:grid;gap:10px 14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f.wide{grid-column:1/-1}
+label,.lbl{font-size:12px;color:var(--sub);font-weight:600}
+label .req{color:var(--bad)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:62px}
+input:disabled,input[readonly],select:disabled{background:var(--auto);color:var(--sub)}
+.hint{font-size:11px;color:var(--sub)}
+.calc{font:13px var(--mono);background:var(--auto);border:1px dashed var(--line);
+  border-radius:7px;padding:7px 9px;color:var(--sub)}
+
+.radios{display:flex;gap:14px;flex-wrap:wrap;padding-top:3px}
+.radios label{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--ink);font-weight:400;cursor:pointer}
+input[type=radio],input[type=checkbox]{width:auto;margin:0}
+
+button{font:inherit;font-weight:600;border:1px solid var(--brand);background:var(--brand);color:#fff;
+  border-radius:7px;padding:8px 15px;cursor:pointer}
+button.ghost{background:transparent;color:var(--brand)}
+button.sm{padding:5px 11px;font-size:12px}
+button:disabled{opacity:.45;cursor:not-allowed}
+
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;
+  border:1px solid transparent;white-space:nowrap}
+.pill.ok{background:var(--ok-w);color:var(--ok);border-color:var(--ok)}
+.pill.warn{background:var(--warn-w);color:var(--warn);border-color:var(--warn)}
+.pill.bad{background:var(--bad-w);color:var(--bad);border-color:var(--bad)}
+.pill.info{background:var(--brand-w);color:var(--brand);border-color:var(--brand)}
+.pill.na{background:var(--auto);color:var(--sub);border-color:var(--line)}
+
+.cands{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.cand{display:flex;gap:10px;align-items:center;flex-wrap:wrap;text-align:left;
+  border:1px solid var(--line);background:var(--auto);border-radius:8px;padding:9px 12px;cursor:pointer;
+  color:var(--ink);font-weight:400}
+.cand:hover{border-color:var(--brand)}
+.cand[aria-pressed=true]{border-color:var(--brand);background:var(--brand-w);box-shadow:inset 3px 0 0 var(--brand)}
+.cand .d{font:12px var(--mono);color:var(--sub);flex:none}
+.cand .n{font-weight:700}
+
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13px}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle}
+th{background:var(--auto);font-size:12px;color:var(--sub);white-space:nowrap}
+td.c,th.c{text-align:center}
+td input,td select{padding:4px 6px}
+
+.note{background:var(--brand-w);border-left:3px solid var(--brand);border-radius:0 8px 8px 0;
+  padding:10px 13px;font-size:12px;color:var(--ink);margin-bottom:14px}
+.note b{color:var(--brand)}
+.alert{background:var(--warn-w);border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  padding:10px 13px;font-size:12.5px;margin:10px 0}
+pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;padding:14px;
+  overflow:auto;font:12px/1.65 var(--mono);max-height:560px;margin:0}
+.k{color:var(--brand)} .s{color:var(--ok)} .nul{color:var(--bad);font-weight:700} .n{color:var(--warn)}
+.rowbtns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.chk{display:flex;flex-direction:column;gap:6px}
+.chk label{display:flex;align-items:center;gap:6px;font-weight:400;color:var(--ink);font-size:13px}
+.sep{border-top:1px dashed var(--line);margin:8px 0;padding-top:8px}
+.vsum{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>생태통로 관리대장 — 입력 UI (시제)</h1>
+<p class="lede">표준 테이블 <code>TB_ECRD</code> 외 8개 테이블에 그대로 적재되는 입력 화면입니다. 조사야장(종이 서식)과는 별개의 산출물이며, 향후 웹 구현을 그대로 이식할 수 있도록 화면·검증·API를 분리했습니다.</p>
+
+<div class="bar">
+  <span class="dot" id="apiDot"></span>
+  <span id="apiMsg">도로 매칭 API 확인 중…</span>
+  <code id="apiUrl"></code>
+  <button class="ghost sm" id="btnRetry" type="button">다시 확인</button>
+  <span style="flex:1"></span>
+  <a class="ghost sm" href="field-form.html" target="_blank" rel="noopener"
+     style="text-decoration:none;display:inline-flex;align-items:center">조사야장 서식 보기</a>
+  <button class="ghost sm" id="btnTheme" type="button">테마 전환</button>
+</div>
+
+<div class="tabs" role="tablist">
+  <button class="tab" role="tab" aria-selected="true" data-p="p1">1. 시설정보</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="p2">2. 모니터링</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="p3">3. 저장 데이터 확인</button>
+</div>
+
+<!-- ══════════ 1. 시설정보 ══════════ -->
+<section class="pane" id="p1">
+  <fieldset>
+    <legend>기본 정보</legend>
+    <div class="grid">
+      <div class="f"><label>생태통로명 <span class="req">*</span></label><input id="ECRD_NM" placeholder="예: 오대산 제1생태통로"></div>
+      <div class="f"><label>준공일자</label><input id="CMCN_YMD" type="date"><span class="hint">DB 저장형식 YYYYMMDD (연월일C8)</span></div>
+      <div class="f"><label>설치기관명</label><input id="INSTL_INST_NM"></div>
+      <div class="f"><label>관리기관명</label><input id="MNG_INST_NM"></div>
+      <div class="f wide"><label>주소</label><input id="ADDR"></div>
+      <div class="f"><label>시설조사자명</label><input id="FCLT_EXMNR_NM" placeholder="복수 시 쉼표로 구분"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>위치 및 도로 (표준노드링크 자동 연계)</legend>
+    <div class="note">
+      <b>위경도를 입력하고 [도로 자동조회]</b>를 누르면 국토교통부 표준노드링크에서 해당 지점의 도로를 찾아 등급·노선번호·도로명·왕복차로수를 자동으로 채웁니다.
+      해당 위치에 도로 공간정보가 없으면 <b>수동입력</b>으로 전환되어 직접 기재할 수 있습니다. 어느 경로로 입력했는지는 <code>ROAD_ATRB_SRC_SE_CD</code>에 함께 저장됩니다.
+    </div>
+    <div class="grid">
+      <div class="f"><label>위도 <span class="req">*</span></label><input id="LAT" type="number" step="0.0000001" placeholder="37.5663"></div>
+      <div class="f"><label>경도 <span class="req">*</span></label><input id="LOT" type="number" step="0.0000001" placeholder="126.9779"></div>
+      <div class="f"><label>탐색 반경(m)</label><input id="RADIUS" type="number" value="100" min="10" max="500" step="10"></div>
+      <div class="f"><span class="lbl">&nbsp;</span>
+        <div class="rowbtns">
+          <button type="button" id="btnMatch">도로 자동조회</button>
+          <button type="button" class="ghost" id="btnManual">수동입력으로 전환</button>
+        </div>
+      </div>
+    </div>
+    <div id="demoPts" hidden></div>
+    <div id="matchBox"></div>
+
+    <div class="sep"></div>
+    <div class="grid">
+      <div class="f"><label>도로등급 <span class="req">*</span></label>
+        <select id="ROAD_GRD_SE_CD" disabled>
+          <option value="">— 선택 —</option>
+          <option value="101">101 고속국도</option><option value="102">102 도시고속국도</option>
+          <option value="103">103 일반국도</option><option value="104">104 특별·광역시도</option>
+          <option value="105">105 국가지원지방도</option><option value="106">106 지방도</option>
+          <option value="107">107 시·군도</option><option value="108">108 기타</option>
+        </select></div>
+      <div class="f"><label>도로노선번호</label><input id="ROAD_RTE_NO" maxlength="5" disabled>
+        <span class="hint" id="rteHint">특별·광역시도(104)·시·군도(107)는 노선번호 체계가 없어 공란</span></div>
+      <div class="f"><label>도로명</label><input id="ROAD_NM" maxlength="80" disabled></div>
+      <div class="f"><label>왕복차로수</label><input id="BTWYS_LANE_CNT" type="number" min="1" max="99" disabled>
+        <span class="hint">자동조회 시 표준노드링크 편도 차로수 × 2</span></div>
+      <div class="f"><span class="lbl">도로속성 출처</span>
+        <div class="calc" id="srcView">미입력</div></div>
+      <div class="f"><span class="lbl">도로링크아이디</span><div class="calc" id="linkView">NULL</div></div>
+      <div class="f"><span class="lbl">도로속성기준일자</span><div class="calc" id="crtrView">NULL</div></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>설치 근거</legend>
+    <div class="radios" id="bssRadios">
+      <label><input type="radio" name="bss" value="BSKP"> 한반도생태축복원사업</label>
+      <label><input type="radio" name="bss" value="BSEI"> 환경영향평가</label>
+      <label><input type="radio" name="bss" value="BSEC"> 생태계보전부담금반환사업</label>
+      <label><input type="radio" name="bss" value="BSET"> 기타사업</label>
+    </div>
+    <div class="f" style="margin-top:10px"><label>기타사업 내용</label>
+      <input id="INSTL_BSS_ETC_CN" disabled placeholder="기타사업 선택 시에만 입력"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>생태통로 구조</legend>
+    <div class="radios">
+      <label><input type="radio" name="etype" value="TPOB"> 육교형</label>
+      <label><input type="radio" name="etype" value="TPTN"> 터널형</label>
+    </div>
+    <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-top:12px">
+      <fieldset class="muted" id="fsOB">
+        <legend>육교형 규격</legend>
+        <div class="grid">
+          <div class="f"><label>생태통로길이 (m)</label><input class="ob" id="OB_LEN" type="number" step="0.001" disabled></div>
+          <div class="f"><label>생태통로너비 (m)</label><input class="ob" id="OB_WDT" type="number" step="0.001" disabled></div>
+        </div>
+      </fieldset>
+      <fieldset class="muted" id="fsTN">
+        <legend>터널형 규격</legend>
+        <div class="radios" id="tnShape">
+          <label><input type="radio" name="tnt" value="TNRT" disabled> 사각형</label>
+          <label><input type="radio" name="tnt" value="TNCR" disabled> 원형</label>
+          <label><input type="radio" name="tnt" value="TNSC" disabled> 반원형</label>
+        </div>
+        <div class="grid" style="margin-top:10px">
+          <div class="f"><label>생태통로길이 (m)</label><input class="tn" id="TN_LEN" type="number" step="0.001" disabled></div>
+          <div class="f"><label>생태통로너비 (m)</label><input class="tn" id="TN_WDT" type="number" step="0.001" disabled></div>
+          <div class="f"><label>생태통로높이 (m)</label><input class="tn" id="TN_HGT" type="number" step="0.001" disabled></div>
+          <div class="f"><label>입구면적 (㎡)</label><input class="tn" id="ENTR_AREA" type="number" step="0.000000001" disabled></div>
+          <div class="f wide"><span class="lbl">개방도 (입구면적 ÷ 길이)</span><div class="calc" id="opnssView">NULL</div></div>
+        </div>
+      </fieldset>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>입지 기준</legend>
+    <div class="grid">
+      <div class="f"><label>좌측 사면경사도 (°)</label><input id="LFSD_SLP_GRDNT" type="number" step="0.01" placeholder="상행 기준"></div>
+      <div class="f"><span class="lbl">좌측 판정</span><div class="calc" id="lfsdView">NULL</div></div>
+      <div class="f"><label>우측 사면경사도 (°)</label><input id="RGSD_SLP_GRDNT" type="number" step="0.01" placeholder="상행 기준"></div>
+      <div class="f"><span class="lbl">우측 판정</span><div class="calc" id="rgsdView">NULL</div></div>
+      <div class="f"><label>내부 토양깊이 (cm)</label><input id="INSD_SOIL_DPTH" type="number" step="0.001"></div>
+      <div class="f"><span class="lbl">토양깊이 판정</span><div class="calc" id="soilView">NULL</div></div>
+    </div>
+    <p class="hint" style="margin:10px 0 0">
+      ※ 판정 기준 — 사면경사도: 1:2(<b>26.6°</b>) 이하 충족 · 내부 토양깊이: <b>70cm</b> 이상 충족.
+      세 항목 모두 <b>충족 / 미충족 / 미측정</b>(기준적합구분코드 CD05) 한 가지 방식으로 기록됩니다.
+    </p>
+  </fieldset>
+
+  <fieldset>
+    <legend>기타 사용물</legend>
+    <div class="radios">
+      <label><input type="radio" name="etcuse" value="N" checked> 무</label>
+      <label><input type="radio" name="etcuse" value="Y"> 유</label>
+    </div>
+    <div class="f" style="margin-top:10px"><label>내용</label>
+      <input id="ETC_USE_CMDTY_CN" disabled placeholder="'유' 선택 시 내용을 기재하세요 (예: 농경지 울타리)">
+      <span class="hint">'무'인 경우 DB에는 유무 값이 아니라 <b>NULL</b>이 저장됩니다 (유무 컬럼 없음).</span></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>부대시설 설치 현황</legend>
+    <div class="tblwrap"><table id="anxTbl">
+      <thead><tr><th>시설</th><th class="c">설치의무</th><th class="c">방향</th><th class="c">설치</th><th class="c">높이(m)</th><th class="c">길이(m)</th><th>비고</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="hint" style="margin:8px 0 0">유도울타리류만 상행·하행을 구분하고 제원(높이·길이)을 기재합니다. 나머지 시설은 설치 유·무만 조사하므로 제원 칸이 없습니다.<br>
+      설치의무는 시설 종류에서 자동으로 정해지는 값이며, 여기서 고른 <b>설치 유·무</b>가 모니터링 탭의 점검 선택지를 결정합니다.</p>
+  </fieldset>
+
+  <div class="f wide"><label>비고내용</label><textarea id="RMRK_CN"></textarea></div>
+</section>
+
+<!-- ══════════ 2. 모니터링 ══════════ -->
+<section class="pane" id="p2" hidden>
+  <fieldset>
+    <legend>모니터링 개요</legend>
+    <div class="grid">
+      <div class="f"><label>모니터링기관명</label><input id="MNTR_INST_NM"></div>
+      <div class="f"><label>조사자명</label><input id="EXMNR_NM"></div>
+      <div class="f"><label>시작일자 <span class="req">*</span></label><input id="MNTR_BGNG_YMD" type="date"></div>
+      <div class="f"><label>종료일자 <span class="req">*</span></label><input id="MNTR_END_YMD" type="date">
+        <span class="hint">최소 1개월 이상</span></div>
+      <div class="f wide"><span class="lbl">기간 검증</span><div class="calc" id="perView">미입력</div></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>모니터링 장비</legend>
+    <div class="grid">
+      <div class="f"><label>무인센서카메라 (대)</label><input id="UMSCAM_INSTL_CNTOM" type="number" min="0" max="999"></div>
+      <div class="f"><label>CCTV (대)</label><input id="CCTV_INSTL_CNTOM" type="number" min="0" max="999"></div>
+      <div class="f"><span class="lbl">장비 설치 유무 <span class="hint">— 대수 합계에서 산출</span></span>
+        <div class="calc" id="eqpView">NULL</div></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>사람에 의한 이용·간섭</legend>
+    <div class="grid">
+      <div class="f"><label>사람 이용빈도 (회/기간내)</label><input id="HMN_UTZTN_FREQ_CNT" type="number" min="0"></div>
+    </div>
+    <div class="sep"></div>
+    <div class="grid">
+      <div class="f"><span class="lbl">밀렵도구</span>
+        <div class="radios"><label><input type="radio" name="pg" value="N" checked> 무</label>
+          <label><input type="radio" name="pg" value="Y"> 유</label></div></div>
+      <div class="f"><label>밀렵도구 내용</label><input id="PGTLS_CN" disabled placeholder="예: 올무 3개"></div>
+      <div class="f"><label>조치결과</label>
+        <select id="PGTLS_ACTN_RSLT_SE_CD" disabled><option value="">— 선택 —</option>
+          <option value="ACRM">ACRM 제거</option><option value="ACHD">ACHD 보류</option></select></div>
+    </div>
+    <div class="grid" style="margin-top:8px">
+      <div class="f"><span class="lbl">기타사용물</span>
+        <div class="radios"><label><input type="radio" name="eu" value="N" checked> 무</label>
+          <label><input type="radio" name="eu" value="Y"> 유</label></div></div>
+      <div class="f"><label>기타사용물 내용</label><input id="M_ETC_USE_CMDTY_CN" disabled placeholder="예: 농경지 울타리"></div>
+      <div class="f"><label>조치결과</label>
+        <select id="ETC_USE_CMDTY_ACTN_RSLT_SE_CD" disabled><option value="">— 선택 —</option>
+          <option value="ACRM">ACRM 제거</option><option value="ACHD">ACHD 보류</option></select></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>동물 이용 현황</legend>
+    <div class="tblwrap"><table id="anmlTbl">
+      <thead><tr><th>종 국명</th><th>학명</th><th class="c">조사방법</th><th class="c">이용빈도<br>(회/기간내)</th><th class="c">삭제</th></tr></thead>
+      <tbody></tbody></table></div>
+    <div class="rowbtns"><button type="button" class="ghost sm" id="addAnml">+ 종 추가</button></div>
+    <p class="hint" style="margin:8px 0 0">원본 서식의 고정 9칸 제약을 없앴습니다. 확인된 종 수만큼 행을 추가하세요.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>식생 조사</legend>
+    <div class="tblwrap"><table id="plntTbl">
+      <thead><tr><th class="c">조사위치</th><th class="c">식생층</th><th>종 국명</th><th>학명</th><th class="c">우점</th><th class="c">삭제</th></tr></thead>
+      <tbody></tbody></table></div>
+    <div class="rowbtns"><button type="button" class="ghost sm" id="addPlnt">+ 종 추가</button></div>
+    <p class="hint" style="margin:8px 0 0">우점종은 조사위치별 1종만 지정합니다. 별도의 '우점식물' 행을 두지 않고 목록에서 직접 표시합니다.</p>
+    <div class="vsum" id="dspcsChk"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>부대시설 점검</legend>
+    <div class="note" style="margin-bottom:12px">이 표는 <b>시설정보 탭의 부대시설 설치 현황에서 자동으로 만들어집니다.</b>
+      설치로 등록된 시설은 <b>이상 없음 / 보수 필요</b> 중에서,
+      미설치로 등록된 시설은 <b>필수 설치항목이면 '설치 필요'로 자동 확정</b>되고
+      <b>설치 권고항목이면 '설치 필요 / 설치 불필요'</b> 중에서 고르게 됩니다.
+      유도울타리류는 별도 기준이 적용되어 미설치 시 '해당없음'으로 확정됩니다.</div>
+    <div class="tblwrap"><table id="mAnxTbl">
+      <thead><tr><th>시설</th><th class="c">설치의무</th><th class="c">방향</th><th class="c">시설정보 설치</th><th class="c">점검상태</th><th>훼손내용</th></tr></thead>
+      <tbody></tbody></table></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>찻길 사고 현황 <span class="hint">(생태통로 중심 양측 500m 이내)</span></legend>
+    <div class="grid">
+      <div class="f"><label>야생동물 (건/기간내)</label><input id="WANMLS_RDKL_NOCS" type="number" min="0"></div>
+      <div class="f"><label>그 외 동물 (건/기간내)</label><input id="ETC_ANML_RDKL_NOCS" type="number" min="0"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>식생 관리계획</legend>
+    <div class="chk">
+      <label><input type="checkbox" id="PLAN_NA"> 해당없음</label>
+      <div class="sep"></div>
+      <label><input type="checkbox" class="plan" id="PLAN_DDTR"> 고사목 제거</label>
+      <label><input type="checkbox" class="plan" id="PLAN_SPLPL"> 보식</label>
+      <label><input type="checkbox" class="plan" id="PLAN_DNSTY"> 식생밀도 조절</label>
+      <label><input type="checkbox" class="plan" id="PLAN_SOIL"> 토양개량</label>
+      <label><input type="checkbox" class="plan" id="PLAN_ETC"> 기타
+        <input id="PLAN_ETC_CN" style="margin-left:6px;max-width:320px" disabled placeholder="기타 계획 내용"></label>
+    </div>
+  </fieldset>
+
+  <div class="f wide"><label>문제점·개선사항</label><textarea id="PBPT_IMPV_CN" rows="4"></textarea>
+    <span class="hint" id="pbptHint"></span></div>
+</section>
+
+<!-- ══════════ 3. 저장 데이터 ══════════ -->
+<section class="pane" id="p3" hidden>
+  <div class="note">아래는 <b>입력한 내용이 표준 테이블에 실제로 적재되는 형태</b>입니다.
+    <span class="nul">null</span> 로 표시된 값은 해당 컬럼에 NULL이 저장된다는 뜻입니다.
+    기타사용물·밀렵도구를 '무'로 두면 별도의 유무 값이 아니라 내용 컬럼에 NULL이 들어가는 것을 확인할 수 있습니다.</div>
+  <div class="rowbtns" style="margin-bottom:12px">
+    <button type="button" id="btnRefresh">새로고침</button>
+    <button type="button" class="ghost" id="btnCopy">JSON 복사</button>
+    <button type="button" class="ghost" id="btnSample">예시값 채우기</button>
+  </div>
+  <div id="valSum" class="vsum"></div>
+  <pre id="jsonOut" style="margin-top:12px"></pre>
+</section>
+</div>
+
+<script>
+'use strict';
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const API = (location.protocol === 'http:' || location.protocol === 'https:')
+  ? location.origin : 'http://127.0.0.1:8765';
+
+/* ── 코드 정의 (공통코드 시트와 동일) ───────────────────────── */
+/* [코드, 시설명, 방향구분여부, 설치의무구분코드(CD17)]
+   설치의무구분은 조사자가 고르는 값이 아니라 시설 종류에서 자동 부여된다(BR-52).
+   이 값이 미설치 시 모니터링에서 고를 수 있는 점검상태를 결정한다. */
+const ANXFC = [
+  ['AXWF', '유도울타리', true, 'OBNA'], ['AXSF', '소형동물 유도울타리', true, 'OBNA'],
+  ['AXSW', '방음벽', false, 'OBMD'], ['AXBW', '보행로 구분 차단벽', false, 'OBRC'],
+  ['AXMD', '관리용 출입문', false, 'OBMD'], ['AXSB', '안내표지판', false, 'OBMD'],
+  ['AXWC', '생태통로 내부 수로', false, 'OBRC'], ['AXEF', '수로 탈출시설 또는 덮개', false, 'OBRC'],
+];
+const OBLG = { OBMD: ['필수', 'bad'], OBRC: ['권고', 'warn'], OBNA: ['—', 'na'] };
+const DRTN = { DRUP: '상행', DRDN: '하행', DRNA: '—' };
+const MNTR_MTHD = [['MMSC', '무인센서카메라'], ['MMCV', 'CCTV'], ['MMFP', '족적판'], ['MMFS', '현장조사']];
+const EXMN_PSTN = [['PSLA', '주변지역(좌)'], ['PSLE', '진입부(좌)'], ['PSIN', '내부'],
+                   ['PSRE', '진입부(우)'], ['PSRA', '주변지역(우)']];
+const VGTLYR = [['VLTR', '(아)교목'], ['VLSH', '관목'], ['VLHB', '초본']];
+const CHCK_NM = { CKNM: '이상 없음', CKRP: '보수 필요', CKIN: '설치 필요', CKNI: '설치 불필요', CKNA: '해당없음' };
+/* 선택 가능한 점검상태 = f(설치유무, 설치의무구분)  — BR-22 / BR-24
+   설치되어 있으면 상태 2택, 미설치면 설치의무에 따라 갈린다.
+   값이 1개뿐인 칸은 자동 확정되어 조사자가 바꿀 수 없다. */
+function chckOptions(instlEn, oblg) {
+  if (instlEn === 'Y') return ['CKNM', 'CKRP'];
+  if (oblg === 'OBMD') return ['CKIN'];
+  if (oblg === 'OBRC') return ['CKIN', 'CKNI'];
+  return ['CKNA'];
+}
+const SLP_LIMIT = 26.6, SOIL_LIMIT = 70;
+
+/* ── 유틸 ───────────────────────────────────────────────── */
+const num = (id) => { const v = $('#' + id).value.trim(); return v === '' ? null : Number(v); };
+const str = (id) => { const v = $('#' + id).value.trim(); return v === '' ? null : v; };
+const ymd = (id) => { const v = $('#' + id).value; return v ? v.replace(/-/g, '') : null; };
+const radio = (n) => { const e = document.querySelector(`input[name="${n}"]:checked`); return e ? e.value : null; };
+const yn = (b) => (b ? 'Y' : 'N');
+
+/* ── 파생값 산출 (BR-05 / BR-07 / BR-08) ─────────────────── */
+/* 경사도 좌·우 / 토양깊이 3개 항목 모두 같은 방식으로 판정한다 (CD05: 충족/미충족/미측정).
+   기준값과 부등호 방향만 항목마다 다르고, 결과 코드체계는 하나다. */
+function calcStblt(id, limit, dir, unit) {
+  const v = num(id);
+  if (v === null) return { cd: 'STNA', nm: '미측정', cls: 'na' };
+  const ok = dir === 'le' ? v <= limit : v >= limit;
+  const sign = dir === 'le' ? (ok ? '≤' : '>') : (ok ? '≥' : '<');
+  return ok ? { cd: 'STMT', nm: `충족 (${v}${unit} ${sign} ${limit}${unit})`, cls: 'ok' }
+            : { cd: 'STNM', nm: `미충족 (${v}${unit} ${sign} ${limit}${unit})`, cls: 'bad' };
+}
+const calcLfsd = () => calcStblt('LFSD_SLP_GRDNT', SLP_LIMIT, 'le', '°');
+const calcRgsd = () => calcStblt('RGSD_SLP_GRDNT', SLP_LIMIT, 'le', '°');
+const calcSoil = () => calcStblt('INSD_SOIL_DPTH', SOIL_LIMIT, 'ge', 'cm');
+function calcOpnss() {
+  const a = num('ENTR_AREA'), l = num('TN_LEN');
+  if (a === null || !l) return null;
+  return Math.round((a / l) * 1000) / 1000;
+}
+
+/* ── 오프라인 데모 매칭 ──────────────────────────────────────
+   매칭 API가 없는 환경(GitHub Pages 등)에서도 자동조회 흐름을 그대로 보여주기 위한 대체 경로.
+   demo_links.json 은 표준노드링크에서 데모 지점 주변만 잘라낸 부분집합이며,
+   좌표 변환·최단거리 계산은 roadmatch.py 와 같은 식을 쓴다. 결과 형식도 API 응답과 동일하다. */
+const A = 6378137.0, F = 1 / 298.257222101;
+const E2 = F * (2 - F), EP2 = E2 / (1 - E2);
+const LAT0 = 38 * Math.PI / 180, LON0 = 127 * Math.PI / 180;
+const K0 = 1.0, FE = 200000.0, FN = 600000.0;
+function meridianArc(lat) {
+  return A * ((1 - E2 / 4 - 3 * E2 ** 2 / 64 - 5 * E2 ** 3 / 256) * lat
+    - (3 * E2 / 8 + 3 * E2 ** 2 / 32 + 45 * E2 ** 3 / 1024) * Math.sin(2 * lat)
+    + (15 * E2 ** 2 / 256 + 45 * E2 ** 3 / 1024) * Math.sin(4 * lat)
+    - (35 * E2 ** 3 / 3072) * Math.sin(6 * lat));
+}
+function toTM(latDeg, lonDeg) {
+  const lat = latDeg * Math.PI / 180, lon = lonDeg * Math.PI / 180;
+  const s = Math.sin(lat), t = Math.tan(lat) ** 2, c = EP2 * Math.cos(lat) ** 2;
+  const n = A / Math.sqrt(1 - E2 * s * s), a_ = Math.cos(lat) * (lon - LON0);
+  const x = K0 * n * (a_ + (1 - t + c) * a_ ** 3 / 6
+    + (5 - 18 * t + t * t + 72 * c - 58 * EP2) * a_ ** 5 / 120) + FE;
+  const y = K0 * (meridianArc(lat) - meridianArc(LAT0) + n * Math.tan(lat) * (a_ * a_ / 2
+    + (5 - t + 9 * c + 4 * c * c) * a_ ** 4 / 24
+    + (61 - 58 * t + t * t + 600 * c - 330 * EP2) * a_ ** 6 / 720)) + FN;
+  return [x, y];
+}
+function segDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, dd = dx * dx + dy * dy;
+  if (!dd) return Math.hypot(px - x1, py - y1);
+  let u = ((px - x1) * dx + (py - y1) * dy) / dd;
+  u = u < 0 ? 0 : (u > 1 ? 1 : u);
+  return Math.hypot(px - (x1 + u * dx), py - (y1 + u * dy));
+}
+let DEMO = null;
+const GRD_NM = { 101: '고속국도', 102: '도시고속국도', 103: '일반국도', 104: '특별·광역시도',
+                 105: '국가지원지방도', 106: '지방도', 107: '시·군도', 108: '기타' };
+const nz = (v) => { const s = v == null ? '' : String(v).trim(); return (s === '' || s === '-') ? null : s; };
+
+function demoMatch(lat, lon, radius) {
+  const [px, py] = toTM(lat, lon);
+  const out = [];
+  for (const L of DEMO.links) {
+    let best = Infinity;
+    for (const g of L.g) for (let i = 0; i < g.length - 1; i++) {
+      const d = segDist(px, py, g[i][0], g[i][1], g[i + 1][0], g[i + 1][1]);
+      if (d < best) best = d;
+    }
+    if (best <= radius) out.push({
+      ROAD_LINK_ID: nz(L.id), ROAD_GRD_SE_CD: nz(L.rank), ROAD_GRD_SE_NM: GRD_NM[L.rank] || '',
+      ROAD_RTE_NO: nz(L.no), ROAD_NM: nz(L.name),
+      BTWYS_LANE_CNT: typeof L.lanes === 'number' ? L.lanes * 2 : null,
+      ROAD_ATRB_SRC_SE_CD: 'RSLK', ROAD_ATRB_CRTR_YMD: nz(L.upd),
+      _dist_m: Math.round(best * 100) / 100, _max_spd: L.spd,
+    });
+  }
+  out.sort((a, b) => a._dist_m - b._dist_m);
+  return { ok: true, count: Math.min(out.length, 5), radius_m: radius, candidates: out.slice(0, 5) };
+}
+async function loadDemo() {
+  if (DEMO) return DEMO;
+  const r = await fetch('demo_links.json');
+  DEMO = await r.json();
+  const box = $('#demoPts');
+  box.hidden = false;
+  box.innerHTML = '<p class="hint" style="margin:10px 0 6px">데모 지점 — 눌러서 좌표를 채운 뒤 [도로 자동조회]를 실행해 보세요.</p>' +
+    '<div class="rowbtns">' + DEMO.points.map((p, i) =>
+      `<button type="button" class="ghost dpt" data-i="${i}">${p.nm}</button>`).join('') + '</div>';
+  $$('.dpt', box).forEach((b) => b.onclick = () => {
+    const p = DEMO.points[+b.dataset.i];
+    $('#LAT').value = p.lat; $('#LOT').value = p.lon;
+    $('#matchBox').innerHTML = ''; doMatch();
+  });
+  return DEMO;
+}
+
+/* ── 도로 매칭 ───────────────────────────────────────────── */
+let roadState = { src: null, link: null, crtr: null };
+let useDemo = false;   // 매칭 API 미연결 시 true
+const ROAD_FIELDS = ['ROAD_GRD_SE_CD', 'ROAD_RTE_NO', 'ROAD_NM', 'BTWYS_LANE_CNT'];
+
+function setRoadEnabled(on) { ROAD_FIELDS.forEach((f) => { $('#' + f).disabled = !on; }); }
+function paintRoadState() {
+  const m = { RSLK: ['표준노드링크 자동매칭 (RSLK)', 'ok'], RSMN: ['조사자 수동입력 (RSMN)', 'warn'] };
+  const s = m[roadState.src];
+  $('#srcView').innerHTML = s ? `<span class="pill ${s[1]}">${s[0]}</span>` : '미입력';
+  $('#linkView').innerHTML = roadState.link ? roadState.link : '<span class="nul">NULL</span>';
+  $('#crtrView').innerHTML = roadState.crtr ? roadState.crtr : '<span class="nul">NULL</span>';
+  const g = $('#ROAD_GRD_SE_CD').value;
+  $('#rteHint').style.color = (g === '104' || g === '107') ? 'var(--warn)' : 'var(--sub)';
+}
+function applyCandidate(c) {
+  $('#ROAD_GRD_SE_CD').value = c.ROAD_GRD_SE_CD || '';
+  $('#ROAD_RTE_NO').value = c.ROAD_RTE_NO || '';
+  $('#ROAD_NM').value = c.ROAD_NM || '';
+  $('#BTWYS_LANE_CNT').value = c.BTWYS_LANE_CNT == null ? '' : c.BTWYS_LANE_CNT;
+  roadState = { src: 'RSLK', link: c.ROAD_LINK_ID, crtr: c.ROAD_ATRB_CRTR_YMD };
+  setRoadEnabled(false);
+  paintRoadState(); refresh();
+}
+function goManual() {
+  roadState = { src: 'RSMN', link: null, crtr: ymd('CMCN_YMD') || null };
+  setRoadEnabled(true);
+  $('#matchBox').innerHTML =
+    '<div class="alert">수동입력 모드입니다. 해당 위치에 도로 공간정보가 없거나 매칭 결과가 실제와 다를 때 사용합니다. ' +
+    '도로링크아이디는 저장되지 않습니다(<code>ROAD_ATRB_SRC_SE_CD = RSMN</code>).</div>';
+  paintRoadState(); refresh();
+}
+async function doMatch() {
+  const lat = num('LAT'), lon = num('LOT');
+  const box = $('#matchBox');
+  if (lat === null || lon === null) { box.innerHTML = '<div class="alert">위도와 경도를 먼저 입력하세요.</div>'; return; }
+  if (lat < 33 || lat > 39 || lon < 124 || lon > 132) {
+    box.innerHTML = '<div class="alert">대한민국 좌표 범위(위도 33~39, 경도 124~132)를 벗어났습니다.</div>'; return;
+  }
+  box.innerHTML = '<div class="alert">조회 중…</div>';
+  const radius = num('RADIUS') || 100;
+  let j;
+  if (useDemo) {
+    try { await loadDemo(); j = demoMatch(lat, lon, radius); } catch (e) {
+      box.innerHTML = '<div class="alert">데모 자료를 읽지 못했습니다. 수동입력으로 전환하세요.</div>'; return;
+    }
+  } else {
+    try {
+      const r = await fetch(`${API}/api/road-link/match?lat=${lat}&lon=${lon}&radius=${radius}`);
+      j = await r.json();
+    } catch (e) {
+      box.innerHTML = '<div class="alert">매칭 API에 연결할 수 없습니다. 서버를 실행하거나 수동입력으로 전환하세요.<br>' +
+        '<code>python road_match_server.py</code></div>';
+      return;
+    }
+  }
+  if (!j.ok) { box.innerHTML = `<div class="alert">${j.error || '조회 실패'}</div>`; return; }
+  if (!j.count) {
+    box.innerHTML = `<div class="alert">반경 ${j.radius_m}m 내에 도로 공간정보가 없습니다. 반경을 넓히거나 수동입력으로 전환하세요.` +
+      (useDemo ? '<br><span class="hint">데모 모드에서는 아래 데모 지점 주변에만 도로 자료가 들어 있습니다.</span>' : '') + '</div>';
+    return;
+  }
+  const multi = j.count > 1;
+  box.innerHTML = `<div class="cands"></div>` +
+    (multi ? '<p class="hint" style="margin:8px 0 0">후보가 2건 이상입니다(중용구간 등). 실제 횡단 도로를 직접 선택하세요.</p>' : '');
+  const wrap = $('.cands', box);
+  j.candidates.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'cand'; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = `<span class="d">${c._dist_m}m</span>` +
+      `<span class="pill info">${c.ROAD_GRD_SE_CD} ${c.ROAD_GRD_SE_NM}</span>` +
+      `<span class="n">${c.ROAD_NM || '(도로명 없음)'}</span>` +
+      `<span class="d">노선 ${c.ROAD_RTE_NO || '—'} · 왕복 ${c.BTWYS_LANE_CNT || '—'}차로` +
+      `${c._max_spd ? ' · 제한 ' + c._max_spd + 'km/h' : ''}</span>`;
+    b.onclick = () => {
+      $$('.cand', wrap).forEach((x) => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      applyCandidate(c);
+    };
+    wrap.appendChild(b);
+    if (!multi && i === 0) b.click();
+  });
+}
+
+/* ── 표 생성 ─────────────────────────────────────────────── */
+function buildAnxfc() {
+  const tb = $('#anxTbl tbody'); tb.innerHTML = '';
+  ANXFC.forEach(([cd, nm, dir, ob]) => {
+    (dir ? ['DRUP', 'DRDN'] : ['DRNA']).forEach((d, i) => {
+      const tr = document.createElement('tr');
+      tr.dataset.cd = cd; tr.dataset.dir = d; tr.dataset.oblg = ob;
+      const [obNm, obCls] = OBLG[ob];
+      tr.innerHTML =
+        (i === 0 ? `<td rowspan="${dir ? 2 : 1}">${nm}<br><span class="hint">${cd}</span></td>
+                    <td class="c" rowspan="${dir ? 2 : 1}"><span class="pill ${obCls}">${obNm}</span></td>` : '') +
+        `<td class="c">${DRTN[d]}</td>` +
+        `<td class="c"><select class="ax-en"><option value="N">무</option><option value="Y">유</option></select></td>` +
+        (dir ? `<td class="c"><input class="ax-hgt" type="number" step="0.001" disabled></td>
+                <td class="c"><input class="ax-len" type="number" step="0.001" disabled></td>`
+             : (i === 0 ? `<td class="c" colspan="2" style="color:var(--sub);font-size:12px">해당 없음</td>` : ''))
+        + `<td><input class="ax-rmrk"></td>`;
+      tb.appendChild(tr);
+    });
+  });
+  $$('.ax-en', tb).forEach((s) => s.onchange = () => {
+    const tr = s.closest('tr'), on = s.value === 'Y';
+    ['.ax-hgt', '.ax-len'].forEach((k) => { const e = $(k, tr); if (e) { e.disabled = !on; if (!on) e.value = ''; } });
+    syncMntrAnxfc();      // 시설정보를 고치면 모니터링 선택지가 곧바로 따라온다 (BR-50)
+    refresh();
+  });
+  tb.oninput = refresh;
+}
+
+/* 모니터링 부대시설 점검 표는 시설정보 설치현황에서 생성된다.
+   행 집합도, 각 행에서 고를 수 있는 점검상태도 시설정보가 정한다 (BR-50/51). */
+function syncMntrAnxfc() {
+  const tb = $('#mAnxTbl tbody');
+  const prev = {};
+  $$('tr', tb).forEach((tr) => {
+    prev[tr.dataset.cd + '|' + tr.dataset.dir] = { st: $('.mx-st', tr).value, dmg: $('.mx-dmg', tr).value };
+  });
+  tb.innerHTML = '';
+  $$('#anxTbl tbody tr').forEach((src) => {
+    const cd = src.dataset.cd, d = src.dataset.dir, ob = src.dataset.oblg;
+    const en = $('.ax-en', src).value;
+    const meta = ANXFC.find((a) => a[0] === cd);
+    const opts = chckOptions(en, ob);
+    const fixed = opts.length === 1;
+    const keep = prev[cd + '|' + d];
+    const val = keep && opts.includes(keep.st) ? keep.st : opts[0];
+
+    const tr = document.createElement('tr');
+    tr.dataset.cd = cd; tr.dataset.dir = d; tr.dataset.oblg = ob; tr.dataset.en = en;
+    const [obNm, obCls] = OBLG[ob];
+    tr.innerHTML =
+      `<td>${meta[1]}<br><span class="hint">${cd}</span></td>` +
+      `<td class="c"><span class="pill ${obCls}">${obNm}</span></td>` +
+      `<td class="c">${DRTN[d]}</td>` +
+      `<td class="c"><span class="pill ${en === 'Y' ? 'ok' : 'na'}">${en === 'Y' ? '유' : '무'}</span></td>` +
+      `<td class="c"><select class="mx-st"${fixed ? ' disabled' : ''}>` +
+        opts.map((o) => `<option value="${o}"${o === val ? ' selected' : ''}>${CHCK_NM[o]}</option>`).join('') +
+      `</select>${fixed ? '<br><span class="hint">자동 확정</span>' : ''}</td>` +
+      `<td><input class="mx-dmg" placeholder="'보수 필요' 선택 시 필수"></td>`;
+    tb.appendChild(tr);
+    const dmgIn = $('.mx-dmg', tr);
+    dmgIn.disabled = val !== 'CKRP';
+    if (val === 'CKRP' && keep) dmgIn.value = keep.dmg || '';
+  });
+  $$('.mx-st', tb).forEach((s) => s.onchange = () => {
+    const tr = s.closest('tr'), rp = s.value === 'CKRP';
+    const e = $('.mx-dmg', tr); e.disabled = !rp; if (!rp) e.value = '';
+    refresh();
+  });
+  tb.oninput = refresh;
+}
+function addAnmlRow() {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input class="a-nm"></td><td><input class="a-st"></td>
+    <td class="c"><select class="a-mt">${MNTR_MTHD.map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}</select></td>
+    <td class="c"><input class="a-fq" type="number" min="0" style="max-width:110px"></td>
+    <td class="c"><button type="button" class="ghost sm">×</button></td>`;
+  $('button', tr).onclick = () => { tr.remove(); refresh(); };
+  $('#anmlTbl tbody').appendChild(tr); refresh();
+}
+function addPlntRow() {
+  const tr = document.createElement('tr');
+  tr.innerHTML =
+    `<td class="c"><select class="p-ps">${EXMN_PSTN.map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}</select></td>
+     <td class="c"><select class="p-ly">${VGTLYR.map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}</select></td>
+     <td><input class="p-nm"></td><td><input class="p-st"></td>
+     <td class="c"><input class="p-ds" type="checkbox"></td>
+     <td class="c"><button type="button" class="ghost sm">×</button></td>`;
+  $('button', tr).onclick = () => { tr.remove(); refresh(); };
+  $('.p-ds', tr).onchange = function () {
+    if (!this.checked) return;
+    const ps = $('.p-ps', tr).value;
+    $$('#plntTbl tbody tr').forEach((o) => {
+      if (o !== tr && $('.p-ps', o).value === ps) $('.p-ds', o).checked = false;
+    });
+    refresh();
+  };
+  $('#plntTbl tbody').appendChild(tr); refresh();
+}
+
+/* ── 페이로드 조립 ───────────────────────────────────────── */
+function buildPayload() {
+  const et = radio('etype'), ob = et === 'TPOB', tn = et === 'TPTN';
+  const lfsd = calcLfsd(), rgsd = calcRgsd(), soil = calcSoil();
+  const cam = num('UMSCAM_INSTL_CNTOM'), cctv = num('CCTV_INSTL_CNTOM');
+  const eqp = (cam === null && cctv === null) ? null : yn((cam || 0) + (cctv || 0) > 0);
+  const naPlan = $('#PLAN_NA').checked;
+
+  const TB_ECRD = {
+    ECRD_SN: '(시퀀스 자동채번)',
+    ECRD_NM: str('ECRD_NM'), CMCN_YMD: ymd('CMCN_YMD'),
+    INSTL_INST_NM: str('INSTL_INST_NM'), MNG_INST_NM: str('MNG_INST_NM'),
+    ADDR: str('ADDR'), FCLT_EXMNR_NM: str('FCLT_EXMNR_NM'),
+    LAT: num('LAT'), LOT: num('LOT'),
+    INSTL_BSS_SE_CD: radio('bss'),
+    INSTL_BSS_ETC_CN: radio('bss') === 'BSET' ? str('INSTL_BSS_ETC_CN') : null,
+    ROAD_LINK_ID: roadState.link, ROAD_GRD_SE_CD: str('ROAD_GRD_SE_CD'),
+    ROAD_RTE_NO: str('ROAD_RTE_NO'),
+    ROAD_NM: str('ROAD_NM'), BTWYS_LANE_CNT: num('BTWYS_LANE_CNT'),
+    ROAD_ATRB_SRC_SE_CD: roadState.src, ROAD_ATRB_CRTR_YMD: roadState.crtr,
+    ECRD_TYPE_CD: et,
+    TNL_TYPE_CD: tn ? radio('tnt') : null,
+    ECRD_LEN: ob ? num('OB_LEN') : (tn ? num('TN_LEN') : null),
+    ECRD_WDT: ob ? num('OB_WDT') : (tn ? num('TN_WDT') : null),
+    ECRD_HGT: tn ? num('TN_HGT') : null,
+    ENTR_AREA: tn ? num('ENTR_AREA') : null,
+    OPNSS: tn ? calcOpnss() : null,
+    LFSD_SLP_GRDNT: num('LFSD_SLP_GRDNT'), LFSD_SLP_GRDNT_STBLT_SE_CD: lfsd.cd,
+    RGSD_SLP_GRDNT: num('RGSD_SLP_GRDNT'), RGSD_SLP_GRDNT_STBLT_SE_CD: rgsd.cd,
+    INSD_SOIL_DPTH: num('INSD_SOIL_DPTH'), INSD_SOIL_DPTH_STBLT_SE_CD: soil.cd,
+    ETC_USE_CMDTY_CN: radio('etcuse') === 'Y' ? str('ETC_USE_CMDTY_CN') : null,
+    RMRK_CN: str('RMRK_CN'),
+  };
+
+  const TB_ECRD_ANXFC = $$('#anxTbl tbody tr').map((tr) => {
+    const on = $('.ax-en', tr).value === 'Y';
+    const h = $('.ax-hgt', tr), l = $('.ax-len', tr), r = $('.ax-rmrk', tr);
+    return {
+      ANXFC_SE_CD: tr.dataset.cd, INSTL_DRTN_SE_CD: tr.dataset.dir, INSTL_EN: on ? 'Y' : 'N',
+      INSTL_OBLG_SE_CD: tr.dataset.oblg,
+      FCLT_HGT: on && h && h.value ? Number(h.value) : null,
+      FCLT_LEN: on && l && l.value ? Number(l.value) : null,
+      RMRK_CN: r && r.value.trim() ? r.value.trim() : null,
+    };
+  });
+
+  const TB_ECRD_MNTR = {
+    MNTR_SN: '(시퀀스 자동채번)', ECRD_SN: '(TB_ECRD 참조)',
+    MNTR_INST_NM: str('MNTR_INST_NM'), EXMNR_NM: str('EXMNR_NM'),
+    MNTR_BGNG_YMD: ymd('MNTR_BGNG_YMD'), MNTR_END_YMD: ymd('MNTR_END_YMD'),
+    MNTR_EQPMN_INSTL_EN: eqp,
+    UMSCAM_INSTL_CNTOM: cam, CCTV_INSTL_CNTOM: cctv,
+    WANMLS_RDKL_NOCS: num('WANMLS_RDKL_NOCS'), ETC_ANML_RDKL_NOCS: num('ETC_ANML_RDKL_NOCS'),
+    VGTTN_MNG_PLAN_NA_YN: yn(naPlan),
+    VGTTN_MNG_PLAN_DDTR_RMVL_YN: yn(!naPlan && $('#PLAN_DDTR').checked),
+    VGTTN_MNG_PLAN_SPLPL_YN: yn(!naPlan && $('#PLAN_SPLPL').checked),
+    VGTTN_MNG_PLAN_DNSTY_CTL_YN: yn(!naPlan && $('#PLAN_DNSTY').checked),
+    VGTTN_MNG_PLAN_SOIL_IMPV_YN: yn(!naPlan && $('#PLAN_SOIL').checked),
+    VGTTN_MNG_PLAN_ETC_YN: yn(!naPlan && $('#PLAN_ETC').checked),
+    VGTTN_MNG_PLAN_ETC_CN: (!naPlan && $('#PLAN_ETC').checked) ? str('PLAN_ETC_CN') : null,
+    PBPT_IMPV_CN: str('PBPT_IMPV_CN'),
+  };
+
+  const pg = radio('pg') === 'Y', eu = radio('eu') === 'Y';
+  const TB_ECRD_MNTR_HMN = {
+    MNTR_SN: '(TB_ECRD_MNTR 참조)',
+    HMN_UTZTN_FREQ_CNT: num('HMN_UTZTN_FREQ_CNT'),
+    PGTLS_CN: pg ? str('PGTLS_CN') : null,
+    PGTLS_ACTN_RSLT_SE_CD: pg ? str('PGTLS_ACTN_RSLT_SE_CD') : null,
+    ETC_USE_CMDTY_CN: eu ? str('M_ETC_USE_CMDTY_CN') : null,
+    ETC_USE_CMDTY_ACTN_RSLT_SE_CD: eu ? str('ETC_USE_CMDTY_ACTN_RSLT_SE_CD') : null,
+  };
+
+  const TB_ECRD_MNTR_ANML = $$('#anmlTbl tbody tr').map((tr, i) => ({
+    ANML_SN: i + 1,
+    BISPCS_KORN_NM: $('.a-nm', tr).value.trim() || null,
+    BISPCS_STNM: $('.a-st', tr).value.trim() || null,
+    MNTR_MTHD_SE_CD: $('.a-mt', tr).value,
+    UTZTN_FREQ_CNT: $('.a-fq', tr).value === '' ? null : Number($('.a-fq', tr).value),
+  }));
+  const TB_ECRD_MNTR_PLNT = $$('#plntTbl tbody tr').map((tr, i) => ({
+    PLNT_SN: i + 1,
+    EXMN_PSTN_SE_CD: $('.p-ps', tr).value, VGTLYR_SE_CD: $('.p-ly', tr).value,
+    BISPCS_KORN_NM: $('.p-nm', tr).value.trim() || null,
+    BISPCS_STNM: $('.p-st', tr).value.trim() || null,
+    DSPCS_YN: yn($('.p-ds', tr).checked),
+  }));
+  const TB_ECRD_MNTR_ANXFC = $$('#mAnxTbl tbody tr').map((tr) => {
+    const st = $('.mx-st', tr).value;
+    return {
+      MNTR_SN: '(TB_ECRD_MNTR 참조)', ECRD_SN: '(TB_ECRD 참조)',
+      ANXFC_SE_CD: tr.dataset.cd, INSTL_DRTN_SE_CD: tr.dataset.dir,
+      CHCK_STTS_SE_CD: st,
+      DMG_CN: st === 'CKRP' ? ($('.mx-dmg', tr).value.trim() || null) : null,
+    };
+  });
+
+  return { TB_ECRD, TB_ECRD_ANXFC, TB_ECRD_MNTR, TB_ECRD_MNTR_HMN,
+           TB_ECRD_MNTR_ANML, TB_ECRD_MNTR_PLNT, TB_ECRD_MNTR_ANXFC };
+}
+
+/* ── 검증 (업무규칙을 화면에서 즉시 확인) ────────────────── */
+function validate(p) {
+  const e = [], w = [];
+  const E = p.TB_ECRD, M = p.TB_ECRD_MNTR;
+  if (!E.ECRD_NM) e.push('BR: 생태통로명 필수');
+  if (E.LAT === null || E.LOT === null) e.push('BR-10: 위경도 필수');
+  if (!E.INSTL_BSS_SE_CD) e.push('BR: 설치근거 필수');
+  if (E.INSTL_BSS_SE_CD === 'BSET' && !E.INSTL_BSS_ETC_CN) e.push('BR-06: 기타사업 내용 필수');
+  if (!E.ECRD_TYPE_CD) e.push('BR-01/02: 생태통로 유형 필수');
+  if (E.ECRD_TYPE_CD === 'TPOB' && (E.ECRD_LEN === null || E.ECRD_WDT === null)) e.push('BR-01: 육교형 길이·너비 필수');
+  if (E.ECRD_TYPE_CD === 'TPTN') {
+    if (!E.TNL_TYPE_CD) e.push('BR-03: 터널형 단면형상 필수');
+    if ([E.ECRD_LEN, E.ECRD_WDT, E.ECRD_HGT, E.ENTR_AREA].some((v) => v === null)) e.push('BR-02: 터널형 규격 필수');
+  }
+  if (!E.ROAD_ATRB_SRC_SE_CD) e.push('BR-11/12: 도로속성 출처 미확정 (자동조회 또는 수동입력)');
+  if (E.ROAD_ATRB_SRC_SE_CD === 'RSLK' && !E.ROAD_LINK_ID) e.push('BR-11: 자동매칭 시 링크아이디 필수');
+  if (E.ROAD_ATRB_SRC_SE_CD === 'RSMN' && E.ROAD_LINK_ID) e.push('BR-12: 수동입력 시 링크아이디 금지');
+  if (!E.ROAD_GRD_SE_CD) e.push('BR: 도로등급 필수');
+  [['LFSD_SLP_GRDNT_STBLT_SE_CD', '좌측 사면경사도'], ['RGSD_SLP_GRDNT_STBLT_SE_CD', '우측 사면경사도'],
+   ['INSD_SOIL_DPTH_STBLT_SE_CD', '내부 토양깊이']].forEach(([k, nm]) => {
+    if (E[k] === 'STNM') w.push(`BR-09: ${nm} 기준 미충족 → 개선사항 기재 권고`);
+  });
+  p.TB_ECRD_ANXFC.forEach((a) => {
+    if (['AXWF', 'AXSF'].includes(a.ANXFC_SE_CD) && a.INSTL_EN === 'Y' && (a.FCLT_HGT === null || a.FCLT_LEN === null))
+      e.push(`BR-19: ${a.ANXFC_SE_CD}(${DRTN[a.INSTL_DRTN_SE_CD]}) 높이·길이 필수`);
+  });
+  // BR-22 / BR-24 : 점검상태가 시설정보의 설치유무·설치의무와 맞는지
+  const anxBy = {};
+  p.TB_ECRD_ANXFC.forEach((a) => { anxBy[a.ANXFC_SE_CD + '|' + a.INSTL_DRTN_SE_CD] = a; });
+  p.TB_ECRD_MNTR_ANXFC.forEach((m) => {
+    const a = anxBy[m.ANXFC_SE_CD + '|' + m.INSTL_DRTN_SE_CD];
+    const label = `${m.ANXFC_SE_CD}(${DRTN[m.INSTL_DRTN_SE_CD]})`;
+    if (!a) { e.push(`BR-51: ${label} 시설정보에 등록되지 않은 부대시설`); return; }
+    const allow = chckOptions(a.INSTL_EN, a.INSTL_OBLG_SE_CD);
+    if (!allow.includes(m.CHCK_STTS_SE_CD))
+      e.push(`BR-22/24: ${label} 설치=${a.INSTL_EN}·의무=${a.INSTL_OBLG_SE_CD}에서 선택 불가한 점검상태(${m.CHCK_STTS_SE_CD})`);
+    if (m.CHCK_STTS_SE_CD === 'CKRP' && !m.DMG_CN) e.push(`BR-23: ${label} 보수 필요 시 훼손내용 필수`);
+    if (m.CHCK_STTS_SE_CD === 'CKIN')
+      w.push(a.INSTL_OBLG_SE_CD === 'OBMD' ? `${label} 필수 설치항목 미이행 — 설치 필요`
+                                           : `${label} 설치 권고항목 미설치 — 설치 필요로 기재됨`);
+  });
+  if (M.MNTR_BGNG_YMD && M.MNTR_END_YMD) {
+    if (M.MNTR_END_YMD < M.MNTR_BGNG_YMD) e.push('BR-25: 종료일이 시작일보다 빠름');
+    else {
+      const d = (new Date($('#MNTR_END_YMD').value) - new Date($('#MNTR_BGNG_YMD').value)) / 86400000;
+      if (d < 30) w.push(`BR-26: 모니터링 기간 ${d}일 (최소 30일 권고)`);
+    }
+  }
+  const H = p.TB_ECRD_MNTR_HMN;
+  if (H.PGTLS_CN && !H.PGTLS_ACTN_RSLT_SE_CD) e.push('BR-34: 밀렵도구 조치결과 필수');
+  if (H.ETC_USE_CMDTY_CN && !H.ETC_USE_CMDTY_ACTN_RSLT_SE_CD) e.push('BR-35: 기타사용물 조치결과 필수');
+  p.TB_ECRD_MNTR_ANML.forEach((a, i) => {
+    if (a.MNTR_MTHD_SE_CD === 'MMSC' && !(M.UMSCAM_INSTL_CNTOM > 0)) e.push(`BR-29: 동물 ${i + 1}행 무인센서카메라 조사이나 장비 0대`);
+    if (a.MNTR_MTHD_SE_CD === 'MMCV' && !(M.CCTV_INSTL_CNTOM > 0)) e.push(`BR-30: 동물 ${i + 1}행 CCTV 조사이나 장비 0대`);
+  });
+  const seen = new Set();
+  p.TB_ECRD_MNTR_ANML.forEach((a) => {
+    if (a.BISPCS_KORN_NM) { if (seen.has(a.BISPCS_KORN_NM)) e.push(`BR-31: 동물 종 중복 (${a.BISPCS_KORN_NM})`); seen.add(a.BISPCS_KORN_NM); }
+  });
+  const byPs = {};
+  p.TB_ECRD_MNTR_PLNT.forEach((x) => { byPs[x.EXMN_PSTN_SE_CD] = (byPs[x.EXMN_PSTN_SE_CD] || 0) + (x.DSPCS_YN === 'Y' ? 1 : 0); });
+  Object.entries(byPs).forEach(([k, v]) => { if (v !== 1) e.push(`BR-33: ${k} 위치의 우점종이 ${v}건 (정확히 1건이어야 함)`); });
+  if (M.VGTTN_MNG_PLAN_ETC_YN === 'Y' && !M.VGTTN_MNG_PLAN_ETC_CN) e.push('BR-38: 관리계획 기타 내용 필수');
+  return { e, w };
+}
+
+/* ── 렌더 ───────────────────────────────────────────────── */
+function jsonHtml(o) {
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  return esc(JSON.stringify(o, null, 2))
+    .replace(/"([^"]+)":/g, '<span class="k">"$1"</span>:')
+    .replace(/: null/g, ': <span class="nul">null</span>')
+    .replace(/: (-?\d+\.?\d*)/g, ': <span class="n">$1</span>')
+    .replace(/: (&quot;|")([^"]*)("|&quot;)/g, ': <span class="s">"$2"</span>');
+}
+function refresh() {
+  [['#lfsdView', calcLfsd()], ['#rgsdView', calcRgsd()], ['#soilView', calcSoil()]].forEach(([sel, r]) => {
+    $(sel).innerHTML = `<span class="pill ${r.cls}">${r.cd}</span> ${r.nm}`;
+  });
+  const op = calcOpnss();
+  $('#opnssView').innerHTML = op === null ? '<span class="nul">NULL</span>' : `${op}  <span class="hint">= 입구면적 ÷ 길이</span>`;
+  const cam = num('UMSCAM_INSTL_CNTOM'), cctv = num('CCTV_INSTL_CNTOM');
+  $('#eqpView').innerHTML = (cam === null && cctv === null) ? '<span class="nul">NULL</span>'
+    : ((cam || 0) + (cctv || 0) > 0 ? '<span class="pill ok">Y</span> 설치' : '<span class="pill warn">N</span> 미설치');
+  const b = $('#MNTR_BGNG_YMD').value, e2 = $('#MNTR_END_YMD').value;
+  $('#perView').innerHTML = (b && e2)
+    ? (() => { const d = (new Date(e2) - new Date(b)) / 86400000;
+        return d < 0 ? '<span class="pill bad">오류</span> 종료일이 시작일보다 빠릅니다'
+          : `<span class="pill ${d >= 30 ? 'ok' : 'warn'}">${d}일</span> ${d >= 30 ? '' : '최소 30일 권고'}`; })()
+    : '미입력';
+  paintRoadState();
+
+  const p = buildPayload();
+  const v = validate(p);
+  $('#pbptHint').textContent = (v.w.length ? '기준 미달 항목이 있습니다 — 사유와 개선계획을 기재하세요.' : '');
+  const sum = $('#valSum');
+  sum.innerHTML = v.e.length || v.w.length
+    ? v.e.map((x) => `<span class="pill bad">${x}</span>`).join('') + v.w.map((x) => `<span class="pill warn">${x}</span>`).join('')
+    : '<span class="pill ok">검증 통과 — 저장 가능</span>';
+  $('#jsonOut').innerHTML = jsonHtml(p);
+}
+
+/* ── 초기화 ─────────────────────────────────────────────── */
+function toggleType() {
+  const v = radio('etype');
+  $('#fsOB').classList.toggle('muted', v !== 'TPOB');
+  $('#fsTN').classList.toggle('muted', v !== 'TPTN');
+  $$('.ob').forEach((e) => { e.disabled = v !== 'TPOB'; if (v !== 'TPOB') e.value = ''; });
+  $$('.tn').forEach((e) => { e.disabled = v !== 'TPTN'; if (v !== 'TPTN') e.value = ''; });
+  $$('input[name=tnt]').forEach((e) => { e.disabled = v !== 'TPTN'; if (v !== 'TPTN') e.checked = false; });
+  refresh();
+}
+async function ping() {
+  const d = $('#apiDot'), m = $('#apiMsg');
+  $('#apiUrl').textContent = API + '/api/road-link/match';
+  d.className = 'dot'; m.textContent = '도로 매칭 API 확인 중…';
+  try {
+    const r = await fetch(`${API}/api/road-link/match?lat=37.5663&lon=126.9779&radius=60`);
+    const j = await r.json();
+    useDemo = false;
+    d.className = 'dot on';
+    m.innerHTML = `도로 매칭 API 연결됨 — 표준노드링크 전체(155만 건) 조회 가능 <span class="hint">(확인 질의 ${j.count}건)</span>`;
+    $('#demoPts').hidden = true;
+  } catch (e) {
+    // API가 없으면 내장 데모 자료로 자동 전환한다 — 검토용 배포(GitHub Pages)에서의 기본 동작
+    try {
+      await loadDemo();
+      useDemo = true;
+      d.className = 'dot on';
+      m.innerHTML = '<b>데모 모드</b> — 매칭 API 없이 내장 표본 자료(' + DEMO.links.length +
+        '개 링크)로 자동조회를 시연합니다. 전체 자료를 쓰려면 <code>python road_match_server.py</code> 실행.';
+    } catch (e2) {
+      useDemo = false;
+      d.className = 'dot off';
+      m.innerHTML = '매칭 API 미연결 — <b>수동입력</b>으로만 작성할 수 있습니다. 서버 실행: <code>python road_match_server.py</code>';
+    }
+  }
+}
+function sample() {
+  $('#ECRD_NM').value = '정부대전청사앞 시험 생태통로';
+  $('#LAT').value = '36.3600'; $('#LOT').value = '127.3845';
+  $('#INSTL_INST_NM').value = '환경부'; $('#MNG_INST_NM').value = '국립생태원';
+  document.querySelector('input[name=bss][value=BSKP]').checked = true;
+  document.querySelector('input[name=etype][value=TPTN]').checked = true;
+  toggleType();
+  document.querySelector('input[name=tnt][value=TNRT]').checked = true;
+  $('#TN_LEN').value = '42.5'; $('#TN_WDT').value = '12'; $('#TN_HGT').value = '6.5'; $('#ENTR_AREA').value = '78';
+  $('#LFSD_SLP_GRDNT').value = '22.4'; $('#RGSD_SLP_GRDNT').value = '31.2';
+  $('#INSD_SOIL_DPTH').value = '65';
+  // 부대시설: 안내표지판(필수)만 설치, 방음벽(필수)·내부 수로(권고)는 미설치 → 모니터링 선택지가 갈리는 것을 보여준다
+  $$('#anxTbl tbody tr').forEach((tr) => {
+    const s = $('.ax-en', tr);
+    s.value = tr.dataset.cd === 'AXSB' ? 'Y' : 'N';
+    s.onchange();
+  });
+  $('#MNTR_BGNG_YMD').value = '2026-03-01'; $('#MNTR_END_YMD').value = '2026-05-31';
+  $('#UMSCAM_INSTL_CNTOM').value = '4';
+  if (!$('#anmlTbl tbody').children.length) { addAnmlRow(); addAnmlRow(); }
+  const rows = $$('#anmlTbl tbody tr');
+  $('.a-nm', rows[0]).value = '고라니'; $('.a-fq', rows[0]).value = '37';
+  $('.a-nm', rows[1]).value = '너구리'; $('.a-fq', rows[1]).value = '12';
+  if (!$('#plntTbl tbody').children.length) { addPlntRow(); addPlntRow(); }
+  const pr = $$('#plntTbl tbody tr');
+  $('.p-nm', pr[0]).value = '신갈나무'; $('.p-ds', pr[0]).checked = true;
+  $('.p-ps', pr[1]).value = 'PSIN'; $('.p-ly', pr[1]).value = 'VLHB';
+  $('.p-nm', pr[1]).value = '억새'; $('.p-ds', pr[1]).checked = true;
+  refresh();
+}
+function init() {
+  $$('.tab').forEach((t) => t.onclick = () => {
+    $$('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
+    $$('.pane').forEach((p) => { p.hidden = p.id !== t.dataset.p; });
+    if (t.dataset.p === 'p2') syncMntrAnxfc();   // 시설정보를 고친 뒤 넘어오면 점검 표를 다시 만든다
+    if (t.dataset.p === 'p3') refresh();
+  });
+  $('#btnTheme').onclick = () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+    document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  };
+  $('#btnMatch').onclick = doMatch;
+  $('#btnManual').onclick = goManual;
+  $('#btnRetry').onclick = ping;
+  $('#btnRefresh').onclick = refresh;
+  $('#btnSample').onclick = sample;
+  $('#btnCopy').onclick = () => navigator.clipboard.writeText(JSON.stringify(buildPayload(), null, 2))
+    .then(() => { $('#btnCopy').textContent = '복사됨'; setTimeout(() => $('#btnCopy').textContent = 'JSON 복사', 1200); });
+  $('#addAnml').onclick = addAnmlRow;
+  $('#addPlnt').onclick = addPlntRow;
+  $$('input[name=etype]').forEach((r) => r.onchange = toggleType);
+  $$('input[name=bss]').forEach((r) => r.onchange = () => {
+    const on = radio('bss') === 'BSET';
+    $('#INSTL_BSS_ETC_CN').disabled = !on; if (!on) $('#INSTL_BSS_ETC_CN').value = '';
+    refresh();
+  });
+  const pair = (name, inp, sel) => $$(`input[name=${name}]`).forEach((r) => r.onchange = () => {
+    const on = radio(name) === 'Y';
+    $('#' + inp).disabled = !on; if (!on) $('#' + inp).value = '';
+    if (sel) { $('#' + sel).disabled = !on; if (!on) $('#' + sel).value = ''; }
+    refresh();
+  });
+  pair('etcuse', 'ETC_USE_CMDTY_CN');
+  pair('pg', 'PGTLS_CN', 'PGTLS_ACTN_RSLT_SE_CD');
+  pair('eu', 'M_ETC_USE_CMDTY_CN', 'ETC_USE_CMDTY_ACTN_RSLT_SE_CD');
+  $('#PLAN_NA').onchange = function () {
+    $$('.plan').forEach((c) => { c.disabled = this.checked; if (this.checked) c.checked = false; });
+    $('#PLAN_ETC_CN').disabled = true; if (this.checked) $('#PLAN_ETC_CN').value = '';
+    refresh();
+  };
+  $('#PLAN_ETC').onchange = function () {
+    $('#PLAN_ETC_CN').disabled = !this.checked; if (!this.checked) $('#PLAN_ETC_CN').value = '';
+    refresh();
+  };
+  $('#ROAD_GRD_SE_CD').onchange = refresh;
+  document.addEventListener('input', (e) => { if (e.target.closest('.pane')) refresh(); });
+  document.addEventListener('change', (e) => { if (e.target.closest('.pane')) refresh(); });
+  buildAnxfc(); syncMntrAnxfc(); addAnmlRow(); addPlntRow();
+  toggleType(); ping(); refresh();
+}
+init();
+</script>
+</body>
+</html>

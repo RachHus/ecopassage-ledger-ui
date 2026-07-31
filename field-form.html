@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>생태통로 관리대장 (표준 테이블 기반 개선 서식)</title>
+<style>
+  :root{--ink:#1a1a1a;--line:#444;--line2:#999;--head:#eef2f7;--sub:#f7f9fb;
+        --accent:#1f4e79;--note:#666;--req:#c00;--calc:#eceff3;--off:#f2f2f2;}
+  *{box-sizing:border-box}
+  body{font-family:"맑은 고딕","Malgun Gothic",-apple-system,sans-serif;color:var(--ink);
+       font-size:10.5px;line-height:1.45;margin:0;padding:16px;background:#f0f0f0}
+  .sheet{width:190mm;min-height:277mm;margin:0 auto 14px;padding:12mm 10mm;background:#fff;
+         box-shadow:0 1px 6px rgba(0,0,0,.18)}
+  .doc-title{font-size:17px;font-weight:700;text-align:center;letter-spacing:2px;margin:0 0 3px}
+  .doc-sub{text-align:center;color:var(--note);font-size:10px;margin:0 0 12px}
+  .form-no{font-size:10px;color:var(--note);margin-bottom:2px}
+  h2.sec{font-size:12.5px;font-weight:700;color:#fff;background:var(--accent);
+         margin:14px 0 0;padding:5px 9px;letter-spacing:1px}
+  h2.sec:first-of-type{margin-top:8px}
+  h2.sec .rt{float:right;font-weight:400;font-size:10px;opacity:.85;letter-spacing:0}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  th,td{border:1px solid var(--line);padding:4px 6px;vertical-align:middle;word-break:break-all}
+  th{background:var(--head);font-weight:700;text-align:center}
+  td.lb{background:var(--sub);font-weight:700;text-align:center}
+  td.lb2{background:var(--sub);font-weight:700;text-align:center;font-size:10px}
+  td.c{text-align:center}
+  .fill{min-height:15px}
+  .u{display:inline-block;border-bottom:1px solid var(--line2);min-width:26px;text-align:center}
+  .u.w{min-width:60px}.u.ww{min-width:110px}.u.www{min-width:190px}
+  .note{color:var(--note);font-size:9.5px}
+  .req{color:var(--req);font-weight:700}
+  .legend{border:1px solid var(--line2);background:#fafafa;padding:7px 10px;font-size:9.5px;
+          color:#333;margin-bottom:10px;line-height:1.6}
+  .legend b{color:var(--accent)}
+  /* 계산칸 — 조사자가 적지 않고 시스템이 산출하는 칸 */
+  td.calc{background:var(--calc);color:var(--note);font-size:9.5px;text-align:center}
+  /* 해당 없는 칸 — 물리적으로 기재할 수 없음을 시각화 */
+  td.off{background:var(--off);color:#aaa;text-align:center;font-size:9.5px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .pair>div{min-width:0}
+  .pair table{border-collapse:collapse}
+  .boxhd{background:var(--accent);color:#fff;font-weight:700;text-align:center;
+         padding:4px 6px;font-size:11px;border:1px solid var(--line);border-bottom:none}
+  .boxhd.alt{background:#3d6f9c}
+  .addrow{text-align:center;color:var(--note);font-size:9.5px;font-style:italic}
+  .foot{margin-top:10px;font-size:9.5px;color:var(--note)}
+  .photo{height:52mm;background:#fcfcfc}
+  @media print{
+    body{background:#fff;padding:0;font-size:10px}
+    .sheet{width:auto;min-height:auto;margin:0;padding:0;box-shadow:none;page-break-after:always}
+    .sheet:last-child{page-break-after:auto}
+    .legend,.pair{page-break-inside:avoid}
+    table{page-break-inside:auto} tr{page-break-inside:avoid}
+  }
+  @media (prefers-color-scheme:dark){body{background:#1b1b1b}.sheet{background:#fff}}
+  :root[data-theme="dark"] body{background:#1b1b1b}
+  :root[data-theme="light"] body{background:#f0f0f0}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ 제1쪽 : 시설정보 ════════════════ -->
+<div class="sheet">
+  <div class="form-no">[별지 제○호서식] &nbsp;(제1쪽 / 총4쪽)</div>
+  <p class="doc-title">생태통로 관리대장</p>
+  <p class="doc-sub">Ⅰ. 생태통로 시설정보 &nbsp;|&nbsp; 표준 테이블 TB_ECRD · TB_ECRD_ANXFC</p>
+
+  <div class="legend">
+    <b>작성 요령</b> &nbsp; ① <span class="req">★</span> 표시는 필수 기재 항목입니다. &nbsp;
+    ② <b>○</b>는 하나만, <b>□</b>는 해당하는 것을 모두 골라 ■로 칠합니다. &nbsp;
+    ③ <span style="background:var(--calc);padding:0 4px">회색 칸</span>은 시스템이 계산하므로 적지 않습니다. &nbsp;
+    ④ 수치는 단위를 확인하여 아라비아 숫자로만 적습니다.
+  </div>
+
+  <h2 class="sec">1. 기본 정보</h2>
+  <table>
+    <colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>
+    <tr><td class="lb">생태통로명 <span class="req">★</span></td><td class="fill"></td>
+        <td class="lb">준공일자</td><td class="fill note">YYYY-MM-DD</td></tr>
+    <tr><td class="lb">설치기관</td><td class="fill"></td>
+        <td class="lb">관리기관</td><td class="fill"></td></tr>
+    <tr><td class="lb">소재지 주소</td><td class="fill"></td>
+        <td class="lb">조사자</td><td class="fill note">성명(복수 시 쉼표 구분)</td></tr>
+    <tr><td class="lb">좌표(중앙부) <span class="req">★</span></td>
+        <td colspan="3" class="fill">위도 <span class="u ww"></span> °&nbsp;&nbsp;&nbsp;
+          경도 <span class="u ww"></span> °
+          &nbsp;&nbsp;<span class="note">※ 십진도로 적습니다(예: 36.165579 / 126.684245). 도·분·초 표기는 사용하지 않습니다.</span></td></tr>
+    <tr><td class="lb">설치근거 <span class="req">★</span></td>
+        <td colspan="3">○ 한반도생태축복원사업 &nbsp;&nbsp; ○ 환경영향평가 &nbsp;&nbsp; ○ 생태계보전부담금반환사업
+          &nbsp;&nbsp; ○ 기타사업 → 사업명 <span class="u www"></span></td></tr>
+  </table>
+
+  <h2 class="sec">2. 횡단 도로<span class="rt">국토교통부 표준노드링크 자동 조회 항목</span></h2>
+  <table>
+    <colgroup><col style="width:15%"><col style="width:85%"></colgroup>
+    <tr><td class="lb">도로등급 <span class="req">★</span></td>
+        <td>○ 101 고속국도 &nbsp;&nbsp; ○ 102 도시고속국도 &nbsp;&nbsp; ○ 103 일반국도 &nbsp;&nbsp; ○ 104 특별·광역시도<br>
+            ○ 105 국가지원지방도 &nbsp;&nbsp; ○ 106 지방도 &nbsp;&nbsp; ○ 107 시·군도 &nbsp;&nbsp; ○ 108 기타</td></tr>
+  </table>
+  <table style="border-top:none">
+    <colgroup><col style="width:15%"><col style="width:20%"><col style="width:15%"><col style="width:30%"><col style="width:20%"></colgroup>
+    <tr><td class="lb">노선번호</td>
+        <td class="fill note">104·107 등급은 공란</td>
+        <td class="lb">도로명</td><td class="fill"></td>
+        <td class="fill">왕복 <span class="u"></span> 차로</td></tr>
+  </table>
+  <table style="border-top:none">
+    <colgroup><col style="width:15%"><col style="width:85%"></colgroup>
+    <tr><td class="lb">조회 결과</td>
+        <td class="note">○ 표준노드링크에서 자동으로 조회하였음 → 링크 ID <span class="u ww"></span> ·
+          자료 기준일 <span class="u w"></span>
+          &nbsp;&nbsp;/&nbsp;&nbsp; ○ 해당 위치에 도로 공간정보가 없어 조사자가 직접 적었음</td></tr>
+  </table>
+
+  <h2 class="sec">3. 생태통로 규격<span class="rt">해당하는 유형의 칸만 작성합니다</span></h2>
+  <div class="pair">
+    <div>
+      <div class="boxhd">○ 육교형</div>
+      <table>
+        <colgroup><col style="width:45%"><col style="width:55%"></colgroup>
+        <tr><td class="lb2">생태통로길이</td><td class="c"><span class="u w"></span> m</td></tr>
+        <tr><td class="lb2">생태통로너비</td><td class="c"><span class="u w"></span> m</td></tr>
+        <tr><td class="lb2">생태통로높이</td><td class="off">육교형 해당 없음</td></tr>
+        <tr><td class="lb2">입구면적</td><td class="off">육교형 해당 없음</td></tr>
+        <tr><td class="lb2">개방도</td><td class="off">육교형 해당 없음</td></tr>
+        <tr><td class="lb2">단면형상</td><td class="off">육교형 해당 없음</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="boxhd alt">○ 터널형</div>
+      <table style="border-left:none">
+        <colgroup><col style="width:45%"><col style="width:55%"></colgroup>
+        <tr><td class="lb2">생태통로길이</td><td class="c"><span class="u w"></span> m</td></tr>
+        <tr><td class="lb2">생태통로너비</td><td class="c"><span class="u w"></span> m</td></tr>
+        <tr><td class="lb2">생태통로높이</td><td class="c"><span class="u w"></span> m</td></tr>
+        <tr><td class="lb2">입구면적</td><td class="c"><span class="u w"></span> ㎡</td></tr>
+        <tr><td class="lb2">개방도</td><td class="calc">입구면적 ÷ 생태통로길이 (계산)</td></tr>
+        <tr><td class="lb2">단면형상</td><td class="c">○ 사각형 &nbsp; ○ 원형 &nbsp; ○ 반원형</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="sec">4. 입지 기준</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:28%"><col style="width:22%"><col style="width:28%"></colgroup>
+    <tr><td class="lb">사면경사도 — 좌측</td><td class="c"><span class="u w"></span> °</td>
+        <td class="lb">사면경사도 — 우측</td><td class="c"><span class="u w"></span> °</td></tr>
+    <tr><td class="lb">내부 토양깊이</td><td class="c"><span class="u w"></span> cm</td>
+        <td colspan="2" class="note">상행 기준 좌·우 사면과 내부 토양을 각각 실측하여 적습니다.</td></tr>
+    <tr><td colspan="4" class="note" style="text-align:center">
+        ※ 충족 기준 — 사면경사도: <b>1:2(26.6°) 이하</b> · 내부 토양깊이: <b>70cm 이상</b>.
+        세 항목의 충족·미충족은 적어 주신 실측값으로 시스템이 판정하므로 따로 표시하지 않습니다.</td></tr>
+  </table>
+
+  <h2 class="sec">5. 기타 사용물</h2>
+  <table>
+    <colgroup><col style="width:15%"><col style="width:85%"></colgroup>
+    <tr><td class="lb">상시 사용물</td>
+        <td>○ 무 &nbsp;&nbsp;&nbsp; ○ 유 → 내용 <span class="u www"></span>
+          &nbsp;&nbsp;<span class="note">(예: 벤치, 농경지 울타리, 농기계 통행 등)</span></td></tr>
+  </table>
+
+  <h2 class="sec">6. 부대시설 설치 현황</h2>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:7%"><col style="width:9%"><col style="width:13%"><col style="width:12%"><col style="width:12%"><col style="width:23%"></colgroup>
+    <tr><th>시설</th><th>구분</th><th>방향</th><th>설치</th><th>높이(m)</th><th>길이(m)</th><th>비고</th></tr>
+    <tr><td class="lb2" rowspan="2">유도울타리</td><td class="off" rowspan="2">—</td><td class="c">상행</td><td class="c">○무 ○유</td>
+        <td class="c"><span class="u"></span></td><td class="c"><span class="u"></span></td><td></td></tr>
+    <tr><td class="c">하행</td><td class="c">○무 ○유</td>
+        <td class="c"><span class="u"></span></td><td class="c"><span class="u"></span></td><td></td></tr>
+    <tr><td class="lb2" rowspan="2">소형동물 유도울타리</td><td class="off" rowspan="2">—</td><td class="c">상행</td><td class="c">○무 ○유</td>
+        <td class="c"><span class="u"></span></td><td class="c"><span class="u"></span></td><td></td></tr>
+    <tr><td class="c">하행</td><td class="c">○무 ○유</td>
+        <td class="c"><span class="u"></span></td><td class="c"><span class="u"></span></td><td></td></tr>
+    <tr><td class="lb2"><b>방음벽</b></td><td class="c"><b>필수</b></td><td class="off">—</td><td class="c">○무 ○유</td>
+        <td class="off" colspan="2">제원 조사 대상 아님</td><td></td></tr>
+    <tr><td class="lb2"><b>관리용 출입문</b></td><td class="c"><b>필수</b></td><td class="off">—</td><td class="c">○무 ○유</td>
+        <td class="off" colspan="2">제원 조사 대상 아님</td><td></td></tr>
+    <tr><td class="lb2"><b>안내표지판</b></td><td class="c"><b>필수</b></td><td class="off">—</td><td class="c">○무 ○유</td>
+        <td class="off" colspan="2">제원 조사 대상 아님</td><td></td></tr>
+    <tr><td class="lb2">보행로 구분 차단벽</td><td class="c">권고</td><td class="off">—</td><td class="c">○무 ○유</td>
+        <td class="off" colspan="2">제원 조사 대상 아님</td><td></td></tr>
+    <tr><td class="lb2">생태통로 내부 수로</td><td class="c">권고</td><td class="off">—</td><td class="c">○무 ○유</td>
+        <td class="off" colspan="2">제원 조사 대상 아님</td><td></td></tr>
+    <tr><td class="lb2">수로 탈출시설 또는 덮개</td><td class="c">권고</td><td class="off">—</td><td class="c">○무 ○유</td>
+        <td class="off" colspan="2">제원 조사 대상 아님</td><td></td></tr>
+    <tr><td colspan="7" class="note" style="text-align:center">
+      <b>필수</b>는 반드시 설치해야 하는 항목, <b>권고</b>는 설치를 권장하는 항목입니다(굵은 글씨가 필수).
+      여기에 적은 설치 유·무가 제3쪽 ‘부대시설 점검’의 기재 방식을 정합니다.</td></tr>
+  </table>
+
+  <table style="margin-top:10px">
+    <colgroup><col style="width:15%"><col style="width:85%"></colgroup>
+    <tr><td class="lb">비고</td><td style="height:34px"></td></tr>
+  </table>
+  <p class="foot">※ 본 쪽의 기재사항은 생태통로 1개소당 1부를 작성하며, 시설 제원이 변경된 경우에만 갱신합니다.</p>
+</div>
+
+<!-- ════════════════ 제2쪽 : 모니터링 ════════════════ -->
+<div class="sheet">
+  <div class="form-no">[별지 제○호서식] &nbsp;(제2쪽 / 총4쪽)</div>
+  <p class="doc-title">생태통로 관리대장</p>
+  <p class="doc-sub">Ⅱ. 생태통로 모니터링 &nbsp;|&nbsp; 표준 테이블 TB_ECRD_MNTR 외 4</p>
+
+  <h2 class="sec">1. 모니터링 개요</h2>
+  <table>
+    <colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>
+    <tr><td class="lb">생태통로명 <span class="req">★</span></td><td class="fill"></td>
+        <td class="lb">모니터링기관</td><td class="fill"></td></tr>
+    <tr><td class="lb">조사자</td><td class="fill"></td>
+        <td class="lb">모니터링기간 <span class="req">★</span></td>
+        <td class="fill"><span class="u w"></span> ~ <span class="u w"></span>
+          <span class="note">(최소 1개월)</span></td></tr>
+    <tr><td class="lb">모니터링장비</td>
+        <td colspan="3">무인센서카메라 <span class="u"></span> 대 &nbsp;&nbsp;&nbsp;
+          CCTV <span class="u"></span> 대 &nbsp;&nbsp;&nbsp; ○ 미설치
+          &nbsp;&nbsp;<span class="note">※ 설치한 장비의 대수를 적습니다. 장비가 없으면 ‘미설치’를 고릅니다.</span></td></tr>
+  </table>
+
+  <h2 class="sec">2. 사람에 의한 이용·간섭</h2>
+  <table>
+    <colgroup><col style="width:18%"><col style="width:82%"></colgroup>
+    <tr><td class="lb">사람 이용빈도</td><td><span class="u w"></span> 회 / 기간 내</td></tr>
+    <tr><td class="lb">밀렵도구</td>
+        <td>○ 무 &nbsp;&nbsp;&nbsp; ○ 유 → 내용 <span class="u ww"></span>
+          &nbsp;&nbsp;→ 조치 ○ 제거 &nbsp; ○ 보류</td></tr>
+    <tr><td class="lb">기타 사용물</td>
+        <td>○ 무 &nbsp;&nbsp;&nbsp; ○ 유 → 내용 <span class="u ww"></span>
+          &nbsp;&nbsp;→ 조치 ○ 제거 &nbsp; ○ 보류</td></tr>
+  </table>
+
+  <h2 class="sec">3. 동물 이용 현황<span class="rt">확인한 종의 수만큼 줄을 늘려 적습니다</span></h2>
+  <table>
+    <colgroup><col style="width:6%"><col style="width:26%"><col style="width:30%"><col style="width:22%"><col style="width:16%"></colgroup>
+    <tr><th>연번</th><th>종 국명</th><th>학명</th><th>조사방법</th><th>이용빈도<br>(회/기간내)</th></tr>
+    <tr><td class="c">1</td><td></td><td></td><td class="c note">센서카메라/CCTV/족적판/현장</td><td class="c"></td></tr>
+    <tr><td class="c">2</td><td></td><td></td><td class="c"></td><td class="c"></td></tr>
+    <tr><td class="c">3</td><td></td><td></td><td class="c"></td><td class="c"></td></tr>
+    <tr><td class="c">4</td><td></td><td></td><td class="c"></td><td class="c"></td></tr>
+    <tr><td class="c">5</td><td></td><td></td><td class="c"></td><td class="c"></td></tr>
+    <tr><td class="c">6</td><td></td><td></td><td class="c"></td><td class="c"></td></tr>
+    <tr><td colspan="5" class="addrow">— 줄이 모자라면 같은 서식을 이어서 작성합니다 (기재 가능한 종 수에 제한 없음) —</td></tr>
+  </table>
+
+  <h2 class="sec">4. 식생 조사<span class="rt">조사위치별로 우점종 1종에만 ○를 칠합니다</span></h2>
+  <table>
+    <colgroup><col style="width:6%"><col style="width:18%"><col style="width:12%"><col style="width:26%"><col style="width:30%"><col style="width:8%"></colgroup>
+    <tr><th>연번</th><th>조사위치</th><th>식생층</th><th>종 국명</th><th>학명</th><th>우점</th></tr>
+    <tr><td class="c">1</td><td class="c note">주변(좌)/진입(좌)/내부/진입(우)/주변(우)</td>
+        <td class="c note">(아)교목<br>관목/초본</td><td></td><td></td><td class="c">○</td></tr>
+    <tr><td class="c">2</td><td class="c"></td><td class="c"></td><td></td><td></td><td class="c">○</td></tr>
+    <tr><td class="c">3</td><td class="c"></td><td class="c"></td><td></td><td></td><td class="c">○</td></tr>
+    <tr><td class="c">4</td><td class="c"></td><td class="c"></td><td></td><td></td><td class="c">○</td></tr>
+    <tr><td class="c">5</td><td class="c"></td><td class="c"></td><td></td><td></td><td class="c">○</td></tr>
+    <tr><td class="c">6</td><td class="c"></td><td class="c"></td><td></td><td></td><td class="c">○</td></tr>
+    <tr><td class="c">7</td><td class="c"></td><td class="c"></td><td></td><td></td><td class="c">○</td></tr>
+    <tr><td class="c">8</td><td class="c"></td><td class="c"></td><td></td><td></td><td class="c">○</td></tr>
+    <tr><td colspan="6" class="addrow">— 줄이 모자라면 같은 서식을 이어서 작성합니다 (기재 가능한 종 수에 제한 없음) —</td></tr>
+  </table>
+
+  <h2 class="sec">5. 식생 관리계획</h2>
+  <table>
+    <colgroup><col style="width:100%"></colgroup>
+    <tr><td>○ 해당없음 &nbsp;<span class="note">— 아래 항목과 함께 고를 수 없습니다</span></td></tr>
+    <tr><td style="border-top:2px solid var(--line)">□ 고사목 제거 &nbsp;&nbsp; □ 보식 &nbsp;&nbsp; □ 식생밀도 조절 &nbsp;&nbsp; □ 토양개량
+        &nbsp;&nbsp; □ 기타 → 내용 <span class="u www"></span></td></tr>
+  </table>
+
+  <h2 class="sec">6. 부대시설 점검</h2>
+  <table>
+    <colgroup><col style="width:22%"><col style="width:7%"><col style="width:8%"><col style="width:22%"><col style="width:23%"><col style="width:18%"></colgroup>
+    <tr><th rowspan="2">시설</th><th rowspan="2">구분</th><th rowspan="2">방향</th>
+        <th colspan="2">점검상태 — 제1쪽 ‘부대시설 설치 현황’에 적은 대로 한 칸만 표시합니다</th>
+        <th rowspan="2">훼손내용</th></tr>
+    <tr><th>제1쪽에 ‘유’로 적은 경우</th><th>제1쪽에 ‘무’로 적은 경우</th></tr>
+
+    <tr><td class="lb2" rowspan="2">유도울타리</td><td class="off" rowspan="2">—</td><td class="c">상행</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="off">해당없음</td><td></td></tr>
+    <tr><td class="c">하행</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="off">해당없음</td><td></td></tr>
+    <tr><td class="lb2" rowspan="2">소형동물 유도울타리</td><td class="off" rowspan="2">—</td><td class="c">상행</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="off">해당없음</td><td></td></tr>
+    <tr><td class="c">하행</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="off">해당없음</td><td></td></tr>
+
+    <tr><td class="lb2"><b>방음벽</b></td><td class="c"><b>필수</b></td><td class="off">—</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="off">설치 필요</td><td></td></tr>
+    <tr><td class="lb2"><b>관리용 출입문</b></td><td class="c"><b>필수</b></td><td class="off">—</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="off">설치 필요</td><td></td></tr>
+    <tr><td class="lb2"><b>안내표지판</b></td><td class="c"><b>필수</b></td><td class="off">—</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="off">설치 필요</td><td></td></tr>
+
+    <tr><td class="lb2">보행로 구분 차단벽</td><td class="c">권고</td><td class="off">—</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="c">○설치 필요 &nbsp; ○설치 불필요</td><td></td></tr>
+    <tr><td class="lb2">생태통로 내부 수로</td><td class="c">권고</td><td class="off">—</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="c">○설치 필요 &nbsp; ○설치 불필요</td><td></td></tr>
+    <tr><td class="lb2">수로 탈출시설 또는 덮개</td><td class="c">권고</td><td class="off">—</td>
+        <td class="c">○이상 없음 &nbsp; ○보수 필요</td><td class="c">○설치 필요 &nbsp; ○설치 불필요</td><td></td></tr>
+
+    <tr><td colspan="6" class="note" style="text-align:center">
+      회색 칸은 고를 것이 없어 이미 정해진 값입니다 — <b>필수</b> 설치항목을 제1쪽에 ‘무’로 적었다면 ‘설치 필요’로 기록됩니다.<br>
+      ‘보수 필요’를 고른 경우에만 맨 오른쪽 훼손내용 칸을 적습니다.</td></tr>
+  </table>
+
+  <h2 class="sec">7. 찻길 사고 현황<span class="rt">생태통로 중심 양측 500m 이내</span></h2>
+  <table>
+    <colgroup><col style="width:25%"><col style="width:25%"><col style="width:25%"><col style="width:25%"></colgroup>
+    <tr><td class="lb">야생동물</td><td class="c"><span class="u"></span> 건 / 기간 내</td>
+        <td class="lb">그 외 동물</td><td class="c"><span class="u"></span> 건 / 기간 내</td></tr>
+  </table>
+
+  <h2 class="sec">8. 문제점 및 개선사항</h2>
+  <table>
+    <colgroup><col style="width:100%"></colgroup>
+    <tr><td style="height:60px"></td></tr>
+    <tr><td class="note">※ 제1쪽의 사면경사도·토양깊이가 기준에 미치지 못하는 경우, 그 사유와 개선계획을 이 칸에 적습니다.</td></tr>
+  </table>
+</div>
+
+<!-- ════════════════ 제3쪽 : 사진(시설정보) ════════════════ -->
+<div class="sheet">
+  <div class="form-no">[별지 제○호서식] &nbsp;(제3쪽 / 총4쪽)</div>
+  <p class="doc-title">생태통로 관리대장</p>
+  <p class="doc-sub">Ⅲ-1. 사진 대지 — <b>시설정보</b> &nbsp;|&nbsp; 표준 테이블 TB_ECRD_PHOTO</p>
+  <table>
+    <colgroup><col style="width:15%"><col style="width:85%"></colgroup>
+    <tr><td class="lb">생태통로명</td><td class="fill"></td></tr>
+  </table>
+  <table style="margin-top:8px">
+    <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
+    <tr><th>생태통로 전경</th><th>생태통로 중앙부</th></tr>
+    <tr><td class="photo"></td><td class="photo"></td></tr>
+    <tr><td class="c note">촬영일시 · 촬영좌표 자동기록</td><td class="c note">촬영일시 · 촬영좌표 자동기록</td></tr>
+    <tr><th>상행 기준 좌측 진입부</th><th>상행 기준 우측 진입부</th></tr>
+    <tr><td class="photo"></td><td class="photo"></td></tr>
+    <tr><td class="c note">촬영일시 · 촬영좌표 자동기록</td><td class="c note">촬영일시 · 촬영좌표 자동기록</td></tr>
+    <tr><th colspan="2">기타</th></tr>
+    <tr><td class="photo"></td><td class="photo"></td></tr>
+    <tr><td class="c note">설명</td><td class="c note">설명</td></tr>
+  </table>
+  <p class="foot">※ 이 쪽은 시설정보 사진 전용입니다. 모니터링 회차별 사진은 제4쪽에 붙입니다.
+    사진 파일의 촬영일시·좌표는 EXIF에서 자동으로 읽어 저장됩니다.</p>
+</div>
+
+<!-- ════════════════ 제4쪽 : 사진(모니터링) ════════════════ -->
+<div class="sheet">
+  <div class="form-no">[별지 제○호서식] &nbsp;(제4쪽 / 총4쪽)</div>
+  <p class="doc-title">생태통로 관리대장</p>
+  <p class="doc-sub">Ⅲ-2. 사진 대지 — <b>모니터링</b> &nbsp;|&nbsp; 표준 테이블 TB_ECRD_PHOTO</p>
+  <table>
+    <colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>
+    <tr><td class="lb">생태통로명</td><td class="fill"></td>
+        <td class="lb">모니터링기간</td><td class="fill"><span class="u w"></span> ~ <span class="u w"></span></td></tr>
+  </table>
+  <table style="margin-top:8px">
+    <colgroup><col style="width:50%"><col style="width:50%"></colgroup>
+    <tr><th>생태통로 전경</th><th>생태통로 중앙부</th></tr>
+    <tr><td class="photo"></td><td class="photo"></td></tr>
+    <tr><td class="c note">촬영일시 · 촬영좌표 자동기록</td><td class="c note">촬영일시 · 촬영좌표 자동기록</td></tr>
+    <tr><th>상행 기준 좌측 진입부</th><th>상행 기준 우측 진입부</th></tr>
+    <tr><td class="photo"></td><td class="photo"></td></tr>
+    <tr><td class="c note">촬영일시 · 촬영좌표 자동기록</td><td class="c note">촬영일시 · 촬영좌표 자동기록</td></tr>
+    <tr><th colspan="2">기타 — 감시장비 · 보수 필요 시설물 · 확인된 동식물 등</th></tr>
+    <tr><td class="photo"></td><td class="photo"></td></tr>
+    <tr><td class="c note">설명</td><td class="c note">설명</td></tr>
+  </table>
+  <p class="foot">※ 이 쪽은 모니터링 회차마다 1부씩 작성합니다. 사진은 위 구분에 해당하는 만큼 이어서 붙일 수 있습니다.</p>
+</div>
+
+</body>
+</html>
