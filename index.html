@@ -253,8 +253,8 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
     <div id="matchBox"></div>
 
     <div id="nearbyBox" hidden>
-      <p class="hint" style="margin:12px 0 6px">반경 내 도로 — 표준노드링크에 기록된 주요 정보입니다.
-        행에 마우스를 올리면 지도에서 해당 도로가 강조됩니다.</p>
+      <p class="hint" style="margin:12px 0 6px">반경 내 도로 — 어느 도로를 고를지 비교하는 표입니다(선택은 위 후보 목록에서).
+        행에 마우스를 올리면 지도에서 해당 도로가 강조되며, 도로를 확정하면 이 표는 사라집니다.</p>
       <div class="tblwrap"><table id="nearbyTbl" class="nearby">
         <thead><tr><th class="c">거리</th><th>도로명</th><th class="c">등급</th><th class="c">노선</th>
           <th class="c">왕복차로</th><th class="c">제한속도</th><th class="c">링크 ID</th><th class="c">기준일</th></tr></thead>
@@ -1088,11 +1088,15 @@ function applyCandidate(c) {
   roadState = { src: 'RSLK', link: c.ROAD_LINK_ID, crtr: c.ROAD_ATRB_CRTR_YMD };
   MAP.pick = c.ROAD_LINK_ID; drawMap();
   setRoadEnabled(false);
+  // 선택이 끝나면 비교용 표는 감춘다 — 고를 수 없는 표가 남아 있으면 혼란스럽다.
+  // 확정한 도로의 상세는 지도에서 그 도로 위에 올리면 계속 볼 수 있다.
+  $('#nearbyBox').hidden = true;
   paintRoadState(); refresh();
 }
 function goManual() {
   roadState = { src: 'RSMN', link: null, crtr: ymd('CMCN_YMD') || null };
   MAP.pick = null; drawMap();
+  $('#nearbyBox').hidden = true;      // 수동입력이면 후보 비교가 의미 없다
   setRoadEnabled(true);
   $('#matchBox').innerHTML =
     '<div class="alert">수동입력 모드입니다. 해당 위치에 도로 공간정보가 없거나 매칭 결과가 실제와 다를 때 사용합니다. ' +
