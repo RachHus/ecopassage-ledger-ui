@@ -79,14 +79,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .pill.info{background:var(--brand-w);color:var(--brand);border-color:var(--brand)}
 .pill.na{background:var(--auto);color:var(--sub);border-color:var(--line)}
 
-.cands{margin-top:10px;display:flex;flex-direction:column;gap:6px}
-.cand{display:flex;gap:10px;align-items:center;flex-wrap:wrap;text-align:left;
-  border:1px solid var(--line);background:var(--auto);border-radius:8px;padding:9px 12px;cursor:pointer;
-  color:var(--ink);font-weight:400}
-.cand:hover{border-color:var(--brand)}
-.cand[aria-pressed=true]{border-color:var(--brand);background:var(--brand-w);box-shadow:inset 3px 0 0 var(--brand)}
-.cand .d{font:12px var(--mono);color:var(--sub);flex:none}
-.cand .n{font-weight:700}
 
 .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{border-collapse:collapse;width:100%;min-width:640px;font-size:13px}
@@ -149,7 +141,10 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
   box-shadow:0 4px 14px rgba(0,0,0,.28)}
 .maptip b{color:#8fe3c2}
 .nearby td{font-size:12px}
+.nearby tbody tr{cursor:pointer}
 .nearby tr.hi{background:var(--brand-w)}
+.nearby tr.sel{background:var(--brand-w);box-shadow:inset 3px 0 0 var(--brand)}
+.nearby tr.sel td:first-child::after{content:' ✓';color:var(--brand);font-weight:700}
 .empty{color:var(--sub);font-size:13px;text-align:center;padding:18px}
 </style>
 </head>
@@ -253,8 +248,8 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
     <div id="matchBox"></div>
 
     <div id="nearbyBox" hidden>
-      <p class="hint" style="margin:12px 0 6px">반경 내 도로 — 어느 도로를 고를지 비교하는 표입니다(선택은 위 후보 목록에서).
-        행에 마우스를 올리면 지도에서 해당 도로가 강조되며, 도로를 확정하면 이 표는 사라집니다.</p>
+      <p class="hint" style="margin:12px 0 6px">반경 내 도로 — <b>행을 누르면 그 도로로 선택</b>됩니다.
+        마우스를 올리면 지도에서 해당 도로가 강조되고, 선택한 행은 초록색으로 표시됩니다.</p>
       <div class="tblwrap"><table id="nearbyTbl" class="nearby">
         <thead><tr><th class="c">거리</th><th>도로명</th><th class="c">등급</th><th class="c">노선</th>
           <th class="c">왕복차로</th><th class="c">제한속도</th><th class="c">링크 ID</th><th class="c">기준일</th></tr></thead>
@@ -770,6 +765,7 @@ const RANK_STYLE = {
 };
 const rankStyle = (r) => RANK_STYLE[r] || ['#a8b2ad', 1.2];
 
+let NEARBY = [];                   // 현재 표에 뿌린 반경 내 도로
 const MAP = {
   cx: 0, cy: 0, mpp: 4,            // 중심 Web Mercator 좌표 · WM m/px
   cvs: null, ctx: null, w: 0, h: 0,
@@ -1046,10 +1042,14 @@ function initMap() {
 function paintNearby(list) {
   const box = $('#nearbyBox'), tb = $('#nearbyTbl tbody');
   tb.innerHTML = '';
+  NEARBY = list;
   if (!list.length) { box.hidden = true; return; }
   box.hidden = false;
   list.forEach((c) => {
     const tr = document.createElement('tr');
+    tr.dataset.link = c.ROAD_LINK_ID;
+    tr.onclick = () => applyCandidate(c);
+    tr.title = '이 도로로 선택';
     const [col] = rankStyle(+c.ROAD_GRD_SE_CD);
     tr.innerHTML = `<td class="c"><b>${c._dist_m}</b> m</td>` +
       `<td><span style="display:inline-block;width:12px;height:3px;background:${col};` +
@@ -1063,6 +1063,23 @@ function paintNearby(list) {
     tr.onmouseenter = () => { MAP.hi = c.ROAD_LINK_ID; tr.classList.add('hi'); drawMap(); };
     tr.onmouseleave = () => { MAP.hi = null; tr.classList.remove('hi'); drawMap(); };
     tb.appendChild(tr);
+  });
+  markPicked();
+}
+
+/* 앞서 고른 도로를 지운다(새로 조회할 때) */
+function clearRoadPick() {
+  ROAD_FIELDS.forEach((f) => { $('#' + f).value = ''; });
+  roadState = { src: null, link: null, crtr: null };
+  MAP.pick = null;
+  setRoadEnabled(false);
+  paintRoadState();
+}
+
+/* 확정한 도로의 행을 표시한다 */
+function markPicked() {
+  $$('#nearbyTbl tbody tr').forEach((tr) => {
+    tr.classList.toggle('sel', !!MAP.pick && tr.dataset.link === MAP.pick);
   });
 }
 
@@ -1088,15 +1105,12 @@ function applyCandidate(c) {
   roadState = { src: 'RSLK', link: c.ROAD_LINK_ID, crtr: c.ROAD_ATRB_CRTR_YMD };
   MAP.pick = c.ROAD_LINK_ID; drawMap();
   setRoadEnabled(false);
-  // 선택이 끝나면 비교용 표는 감춘다 — 고를 수 없는 표가 남아 있으면 혼란스럽다.
-  // 확정한 도로의 상세는 지도에서 그 도로 위에 올리면 계속 볼 수 있다.
-  $('#nearbyBox').hidden = true;
+  markPicked();          // 표가 곧 선택 수단이므로 감추지 않고 선택된 행만 표시한다
   paintRoadState(); refresh();
 }
 function goManual() {
   roadState = { src: 'RSMN', link: null, crtr: ymd('CMCN_YMD') || null };
-  MAP.pick = null; drawMap();
-  $('#nearbyBox').hidden = true;      // 수동입력이면 후보 비교가 의미 없다
+  MAP.pick = null; drawMap(); markPicked();
   setRoadEnabled(true);
   $('#matchBox').innerHTML =
     '<div class="alert">수동입력 모드입니다. 해당 위치에 도로 공간정보가 없거나 매칭 결과가 실제와 다를 때 사용합니다. ' +
@@ -1111,8 +1125,9 @@ async function doMatch() {
     box.innerHTML = '<div class="alert">대한민국 좌표 범위(위도 33~39, 경도 124~132)를 벗어났습니다.</div>'; return;
   }
   box.innerHTML = '<div class="alert">조회 중…</div>';
-  // 조회 결과를 기다리지 않고 먼저 지도를 옮긴다 — 결과가 0건이어도 위치는 보여야 한다
-  if (MAP.ready) { centerOnInput(groundMpp() > 40); drawMap(); }
+  // 조회 결과를 기다리지 않고 먼저 지도를 옮긴다 — 결과가 0건이어도 위치는 보여야 한다.
+  // 좌표를 직접 입력한 경우가 많으므로 항상 상세 축척까지 확대한다.
+  if (MAP.ready) { centerOnInput(true); drawMap(); }
   const radius = Math.min(500, num('RADIUS') || 100);
   let j;
   try {
@@ -1122,32 +1137,21 @@ async function doMatch() {
     return;
   }
   if (!j.count) {
+    clearRoadPick();
     paintNearby([]);
     box.innerHTML = `<div class="alert">반경 ${j.radius_m}m 내에 도로 공간정보가 없습니다. 반경을 넓히거나 수동입력으로 전환하세요.` +
       '<br><span class="hint">반경을 넓히거나, 실제 횡단 도로가 표준노드링크에 없는 위치라면 수동입력을 쓰세요.</span></div>';
     return;
   }
+  // 새 조회이므로 앞서 고른 도로를 지운다 — 그대로 두면 지도와 다른 도로가 화면에 남는다
+  clearRoadPick();
+  // 선택은 아래 '반경 내 도로' 표에서 행을 눌러 한다 — 목록을 두 벌 두지 않는다
   paintNearby(j.candidates);
-  const multi = j.count > 1;
-  box.innerHTML = `<div class="cands"></div>` +
-    (multi ? '<p class="hint" style="margin:8px 0 0">후보가 2건 이상입니다(중용구간 등). 실제 횡단 도로를 직접 선택하세요.</p>' : '');
-  const wrap = $('.cands', box);
-  j.candidates.forEach((c, i) => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'cand'; b.setAttribute('aria-pressed', 'false');
-    b.innerHTML = `<span class="d">${c._dist_m}m</span>` +
-      `<span class="pill info">${c.ROAD_GRD_SE_CD} ${c.ROAD_GRD_SE_NM}</span>` +
-      `<span class="n">${c.ROAD_NM || '(도로명 없음)'}</span>` +
-      `<span class="d">노선 ${c.ROAD_RTE_NO || '—'} · 왕복 ${c.BTWYS_LANE_CNT || '—'}차로` +
-      `${c._max_spd ? ' · 제한 ' + c._max_spd + 'km/h' : ''}</span>`;
-    b.onclick = () => {
-      $$('.cand', wrap).forEach((x) => x.setAttribute('aria-pressed', 'false'));
-      b.setAttribute('aria-pressed', 'true');
-      applyCandidate(c);
-    };
-    wrap.appendChild(b);
-    if (!multi && i === 0) b.click();
-  });
+  box.innerHTML = j.count > 1
+    ? '<div class="alert">반경 내 도로가 ' + j.count + '건입니다(중용구간 등). ' +
+      '아래 표에서 <b>실제로 횡단하는 도로의 행</b>을 눌러 선택하세요.</div>'
+    : '';
+  if (j.count === 1) applyCandidate(j.candidates[0]);   // 후보가 하나뿐이면 자동 확정
 }
 
 /* ── 표 생성 ─────────────────────────────────────────────── */
