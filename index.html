@@ -108,6 +108,21 @@ pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;paddin
 .chk label{display:flex;align-items:center;gap:6px;font-weight:400;color:var(--ink);font-size:13px}
 .sep{border-top:1px dashed var(--line);margin:8px 0;padding-top:8px}
 .vsum{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+/* 통과 기준 안내 상자 — 조사자가 무엇을 보고 판단하는지 화면에서 바로 읽히게 한다 */
+.crit{background:var(--auto);border:1px solid var(--line);border-left:3px solid var(--brand);
+  border-radius:0 9px 9px 0;padding:12px 15px;margin-bottom:12px}
+.crit-h{font-weight:700;color:var(--brand);font-size:12px;letter-spacing:.04em;margin-bottom:6px}
+.crit ul{margin:0;padding-left:18px} .crit li{font-size:13px;line-height:1.85}
+.crit .hint{display:block;margin-left:0}
+/* 저장/최종등록 액션바 */
+.actbar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin-top:18px;
+  box-shadow:0 -2px 14px rgba(0,0,0,.06)}
+.boardhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.boardhead h2{margin:0;font-size:19px}
+h3.sub{font-size:14px;margin:22px 0 8px;color:var(--sub)}
+tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
+.empty{color:var(--sub);font-size:13px;text-align:center;padding:18px}
 </style>
 </head>
 <body>
@@ -126,10 +141,34 @@ pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;paddin
   <button class="ghost sm" id="btnTheme" type="button">테마 전환</button>
 </div>
 
+<!-- ══════════ 관리대장 게시판 ══════════ -->
+<section id="viewBoard">
+  <div class="boardhead">
+    <h2>생태통로 관리대장</h2>
+    <span style="flex:1"></span>
+    <button type="button" id="btnNew">새 관리대장 작성</button>
+    <button type="button" class="ghost" id="btnSample">예시값으로 작성 시작</button>
+  </div>
+  <div class="note">최종 등록을 마친 관리대장만 이 목록에 나타납니다.
+    작성하다 저장한 건은 아래 <b>작성 중</b> 목록에서 이어서 쓸 수 있습니다.</div>
+  <div class="tblwrap"><table id="boardTbl">
+    <thead><tr><th>생태통로명</th><th>횡단 도로</th><th class="c">유형</th><th class="c">모니터링</th>
+      <th class="c">등록완료일시</th><th class="c">보기</th></tr></thead>
+    <tbody></tbody></table></div>
+
+  <h3 class="sub">작성 중</h3>
+  <div class="tblwrap"><table id="draftTbl">
+    <thead><tr><th>생태통로명</th><th>횡단 도로</th><th class="c">최근 저장</th><th class="c">이어 작성</th></tr></thead>
+    <tbody></tbody></table></div>
+
+  <div id="detailBox" hidden></div>
+</section>
+
+<!-- ══════════ 작성 화면 ══════════ -->
+<div id="viewEdit" hidden>
 <div class="tabs" role="tablist">
   <button class="tab" role="tab" aria-selected="true" data-p="p1">1. 시설정보</button>
   <button class="tab" role="tab" aria-selected="false" data-p="p2">2. 모니터링</button>
-  <button class="tab" role="tab" aria-selected="false" data-p="p3">3. 저장 데이터 확인</button>
 </div>
 
 <!-- ══════════ 1. 시설정보 ══════════ -->
@@ -234,18 +273,21 @@ pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;paddin
 
   <fieldset>
     <legend>입지 기준</legend>
-    <div class="grid">
-      <div class="f"><label>좌측 사면경사도 (°)</label><input id="LFSD_SLP_GRDNT" type="number" step="0.01" placeholder="상행 기준"></div>
-      <div class="f"><span class="lbl">좌측 판정</span><div class="calc" id="lfsdView">NULL</div></div>
-      <div class="f"><label>우측 사면경사도 (°)</label><input id="RGSD_SLP_GRDNT" type="number" step="0.01" placeholder="상행 기준"></div>
-      <div class="f"><span class="lbl">우측 판정</span><div class="calc" id="rgsdView">NULL</div></div>
-      <div class="f"><label>내부 토양깊이 (cm)</label><input id="INSD_SOIL_DPTH" type="number" step="0.001"></div>
-      <div class="f"><span class="lbl">토양깊이 판정</span><div class="calc" id="soilView">NULL</div></div>
+    <div class="crit">
+      <div class="crit-h">통과 기준</div>
+      <ul>
+        <li><b>사면경사도</b> — 좌·우 사면이 <b>1:2(26.6°)보다 완만</b>하면 통과.
+          <span class="hint">2m 나아갈 때 1m보다 덜 올라가면 통과입니다.</span></li>
+        <li><b>내부 토양깊이</b> — 통로 내부 흙의 깊이가 <b>70cm 이상</b>이면 통과.</li>
+      </ul>
     </div>
-    <p class="hint" style="margin:10px 0 0">
-      ※ 판정 기준 — 사면경사도: 1:2(<b>26.6°</b>) 이하 충족 · 내부 토양깊이: <b>70cm</b> 이상 충족.
-      세 항목 모두 <b>충족 / 미충족 / 미측정</b>(기준적합구분코드 CD05) 한 가지 방식으로 기록됩니다.
-    </p>
+    <div class="tblwrap"><table id="critTbl">
+      <thead><tr><th>항목</th><th class="c">통과 기준</th><th class="c">판정</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="hint" style="margin:8px 0 0">
+      각도·깊이를 재어 적지 않고 <b>통과 / 미통과</b>만 고릅니다. 접근이 어려워 판단하지 못한 경우에만
+      <b>확인불가</b>를 고르세요 — 비워 두는 것(미입력)과는 구분되어 저장됩니다.</p>
   </fieldset>
 
   <fieldset>
@@ -309,7 +351,7 @@ pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;paddin
       <div class="f"><label>밀렵도구 내용</label><input id="PGTLS_CN" disabled placeholder="예: 올무 3개"></div>
       <div class="f"><label>조치결과</label>
         <select id="PGTLS_ACTN_RSLT_SE_CD" disabled><option value="">— 선택 —</option>
-          <option value="ACRM">ACRM 제거</option><option value="ACHD">ACHD 보류</option></select></div>
+          <option value="ACRM">제거</option><option value="ACHD">보류</option></select></div>
     </div>
     <div class="grid" style="margin-top:8px">
       <div class="f"><span class="lbl">기타사용물</span>
@@ -318,7 +360,7 @@ pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;paddin
       <div class="f"><label>기타사용물 내용</label><input id="M_ETC_USE_CMDTY_CN" disabled placeholder="예: 농경지 울타리"></div>
       <div class="f"><label>조치결과</label>
         <select id="ETC_USE_CMDTY_ACTN_RSLT_SE_CD" disabled><option value="">— 선택 —</option>
-          <option value="ACRM">ACRM 제거</option><option value="ACHD">ACHD 보류</option></select></div>
+          <option value="ACRM">제거</option><option value="ACHD">보류</option></select></div>
     </div>
   </fieldset>
 
@@ -354,11 +396,15 @@ pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;paddin
   </fieldset>
 
   <fieldset>
-    <legend>찻길 사고 현황 <span class="hint">(생태통로 중심 양측 500m 이내)</span></legend>
+    <legend>찻길 사고 현황 <span class="hint">(로드킬 정보 자동 집계)</span></legend>
+    <div class="note">조사자가 세는 항목이 아닙니다. 위 <b>모니터링 기간</b>이 정해지면
+      로드킬 정보에서 <b>생태통로 중심 양측 500m 이내 · 해당 기간</b>의 사고를 집계해 자동으로 채웁니다.</div>
     <div class="grid">
-      <div class="f"><label>야생동물 (건/기간내)</label><input id="WANMLS_RDKL_NOCS" type="number" min="0"></div>
-      <div class="f"><label>그 외 동물 (건/기간내)</label><input id="ETC_ANML_RDKL_NOCS" type="number" min="0"></div>
+      <div class="f"><span class="lbl">야생동물 (건)</span><div class="calc" id="rdklWView">기간 미입력</div></div>
+      <div class="f"><span class="lbl">그 외 동물 (건)</span><div class="calc" id="rdklEView">기간 미입력</div></div>
+      <div class="f wide"><span class="lbl">집계 조건</span><div class="calc" id="rdklCond">—</div></div>
     </div>
+    <div class="rowbtns"><button type="button" class="ghost sm" id="btnRdkl">로드킬 정보 다시 조회</button></div>
   </fieldset>
 
   <fieldset>
@@ -379,19 +425,16 @@ pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;paddin
     <span class="hint" id="pbptHint"></span></div>
 </section>
 
-<!-- ══════════ 3. 저장 데이터 ══════════ -->
-<section class="pane" id="p3" hidden>
-  <div class="note">아래는 <b>입력한 내용이 표준 테이블에 실제로 적재되는 형태</b>입니다.
-    <span class="nul">null</span> 로 표시된 값은 해당 컬럼에 NULL이 저장된다는 뜻입니다.
-    기타사용물·밀렵도구를 '무'로 두면 별도의 유무 값이 아니라 내용 컬럼에 NULL이 들어가는 것을 확인할 수 있습니다.</div>
-  <div class="rowbtns" style="margin-bottom:12px">
-    <button type="button" id="btnRefresh">새로고침</button>
-    <button type="button" class="ghost" id="btnCopy">JSON 복사</button>
-    <button type="button" class="ghost" id="btnSample">예시값 채우기</button>
-  </div>
-  <div id="valSum" class="vsum"></div>
-  <pre id="jsonOut" style="margin-top:12px"></pre>
-</section>
+<div class="actbar">
+  <span class="pill na" id="stBadge">작성 전</span>
+  <span class="hint" id="actMsg"></span>
+  <span style="flex:1"></span>
+  <button type="button" class="ghost" id="btnBack">목록으로</button>
+  <button type="button" class="ghost" id="btnSave">저장</button>
+  <button type="button" id="btnSubmit">최종 등록</button>
+</div>
+<div id="valSum" class="vsum"></div>
+</div><!-- /viewEdit -->
 </div>
 
 <script>
@@ -406,26 +449,24 @@ const API = (location.protocol === 'http:' || location.protocol === 'https:')
    설치의무구분은 조사자가 고르는 값이 아니라 시설 종류에서 자동 부여된다(BR-52).
    이 값이 미설치 시 모니터링에서 고를 수 있는 점검상태를 결정한다. */
 const ANXFC = [
-  ['AXWF', '유도울타리', true, 'OBNA'], ['AXSF', '소형동물 유도울타리', true, 'OBNA'],
+  ['AXWF', '유도울타리', true, 'OBMD'], ['AXSF', '소형동물 유도울타리', true, 'OBMD'],
   ['AXSW', '방음벽', false, 'OBMD'], ['AXBW', '보행로 구분 차단벽', false, 'OBRC'],
   ['AXMD', '관리용 출입문', false, 'OBMD'], ['AXSB', '안내표지판', false, 'OBMD'],
   ['AXWC', '생태통로 내부 수로', false, 'OBRC'], ['AXEF', '수로 탈출시설 또는 덮개', false, 'OBRC'],
 ];
-const OBLG = { OBMD: ['필수', 'bad'], OBRC: ['권고', 'warn'], OBNA: ['—', 'na'] };
+const OBLG = { OBMD: ['필수', 'bad'], OBRC: ['권고', 'warn'] };
 const DRTN = { DRUP: '상행', DRDN: '하행', DRNA: '—' };
 const MNTR_MTHD = [['MMSC', '무인센서카메라'], ['MMCV', 'CCTV'], ['MMFP', '족적판'], ['MMFS', '현장조사']];
 const EXMN_PSTN = [['PSLA', '주변지역(좌)'], ['PSLE', '진입부(좌)'], ['PSIN', '내부'],
                    ['PSRE', '진입부(우)'], ['PSRA', '주변지역(우)']];
 const VGTLYR = [['VLTR', '(아)교목'], ['VLSH', '관목'], ['VLHB', '초본']];
-const CHCK_NM = { CKNM: '이상 없음', CKRP: '보수 필요', CKIN: '설치 필요', CKNI: '설치 불필요', CKNA: '해당없음' };
+const CHCK_NM = { CKNM: '이상 없음', CKRP: '보수 필요', CKIN: '설치 필요', CKNI: '설치 불필요' };
 /* 선택 가능한 점검상태 = f(설치유무, 설치의무구분)  — BR-22 / BR-24
    설치되어 있으면 상태 2택, 미설치면 설치의무에 따라 갈린다.
    값이 1개뿐인 칸은 자동 확정되어 조사자가 바꿀 수 없다. */
 function chckOptions(instlEn, oblg) {
   if (instlEn === 'Y') return ['CKNM', 'CKRP'];
-  if (oblg === 'OBMD') return ['CKIN'];
-  if (oblg === 'OBRC') return ['CKIN', 'CKNI'];
-  return ['CKNA'];
+  return oblg === 'OBMD' ? ['CKIN'] : ['CKIN', 'CKNI'];
 }
 const SLP_LIMIT = 26.6, SOIL_LIMIT = 70;
 
@@ -437,19 +478,49 @@ const radio = (n) => { const e = document.querySelector(`input[name="${n}"]:chec
 const yn = (b) => (b ? 'Y' : 'N');
 
 /* ── 파생값 산출 (BR-05 / BR-07 / BR-08) ─────────────────── */
-/* 경사도 좌·우 / 토양깊이 3개 항목 모두 같은 방식으로 판정한다 (CD05: 충족/미충족/미측정).
-   기준값과 부등호 방향만 항목마다 다르고, 결과 코드체계는 하나다. */
-function calcStblt(id, limit, dir, unit) {
-  const v = num(id);
-  if (v === null) return { cd: 'STNA', nm: '미측정', cls: 'na' };
-  const ok = dir === 'le' ? v <= limit : v >= limit;
-  const sign = dir === 'le' ? (ok ? '≤' : '>') : (ok ? '≥' : '<');
-  return ok ? { cd: 'STMT', nm: `충족 (${v}${unit} ${sign} ${limit}${unit})`, cls: 'ok' }
-            : { cd: 'STNM', nm: `미충족 (${v}${unit} ${sign} ${limit}${unit})`, cls: 'bad' };
+/* 입지 기준 3개 항목 — 실측값을 받지 않고 조사자가 통과 여부를 직접 고른다(BR-07/08).
+   세 항목 모두 같은 코드그룹(CD05: 통과/미통과/확인불가)을 쓴다. */
+const CRIT = [
+  ['LFSD_SLP_GRDNT_STBLT_SE_CD', '좌측 사면경사도', `1:2(${SLP_LIMIT}°)보다 완만`],
+  ['RGSD_SLP_GRDNT_STBLT_SE_CD', '우측 사면경사도', `1:2(${SLP_LIMIT}°)보다 완만`],
+  ['INSD_SOIL_DPTH_STBLT_SE_CD', '내부 토양깊이', `${SOIL_LIMIT}cm 이상`],
+];
+const STBLT = [['STPS', '통과', 'ok'], ['STFL', '미통과', 'bad'], ['STNA', '확인불가', 'na']];
+function buildCrit() {
+  const tb = $('#critTbl tbody'); tb.innerHTML = '';
+  CRIT.forEach(([key, nm, crit]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="lb2">${nm}</td><td class="c">${crit}</td><td class="c">` +
+      STBLT.map(([v, t]) => `<label style="margin-right:12px;font-weight:400">` +
+        `<input type="radio" name="crit_${key}" value="${v}"> ${t}</label>`).join('') + '</td>';
+    tb.appendChild(tr);
+  });
+  tb.onchange = refresh;
 }
-const calcLfsd = () => calcStblt('LFSD_SLP_GRDNT', SLP_LIMIT, 'le', '°');
-const calcRgsd = () => calcStblt('RGSD_SLP_GRDNT', SLP_LIMIT, 'le', '°');
-const calcSoil = () => calcStblt('INSD_SOIL_DPTH', SOIL_LIMIT, 'ge', 'cm');
+const critVal = (key) => radio('crit_' + key);
+/* 찻길사고 — 로드킬 정보 연계 자리(BR-56).
+   실제 구현에서는 생태통로 좌표·모니터링 기간으로 로드킬 조회 API를 호출한다.
+   여기서는 연계 대상 시스템이 확정되지 않아, 좌표와 기간에서 결정되는 값을 만들어
+   '조사자가 적지 않고 자동으로 채워진다'는 동작만 보여준다. 같은 입력이면 같은 값이 나온다. */
+let rdkl = { w: null, e: null, cond: null };
+function fetchRdkl() {
+  const b = $('#MNTR_BGNG_YMD').value, e2 = $('#MNTR_END_YMD').value;
+  const lat = num('LAT'), lon = num('LOT');
+  if (!b || !e2 || new Date(e2) < new Date(b)) {
+    rdkl = { w: null, e: null, cond: null };
+  } else if (lat === null || lon === null) {
+    rdkl = { w: null, e: null, cond: '좌표 미입력 — 집계 범위를 정할 수 없습니다' };
+  } else {
+    const days = Math.round((new Date(e2) - new Date(b)) / 86400000);
+    const seed = Math.abs(Math.round(lat * 1000 + lon * 1000));
+    rdkl = {
+      w: Math.round(days / 30 * (2 + seed % 5)),
+      e: Math.round(days / 30 * (1 + seed % 3)),
+      cond: `반경 500m · ${b} ~ ${e2} (${days}일)`,
+    };
+  }
+  return rdkl;
+}
 function calcOpnss() {
   const a = num('ENTR_AREA'), l = num('TN_LEN');
   if (a === null || !l) return null;
@@ -717,7 +788,7 @@ function addPlntRow() {
 /* ── 페이로드 조립 ───────────────────────────────────────── */
 function buildPayload() {
   const et = radio('etype'), ob = et === 'TPOB', tn = et === 'TPTN';
-  const lfsd = calcLfsd(), rgsd = calcRgsd(), soil = calcSoil();
+  const rk = fetchRdkl();
   const cam = num('UMSCAM_INSTL_CNTOM'), cctv = num('CCTV_INSTL_CNTOM');
   const eqp = (cam === null && cctv === null) ? null : yn((cam || 0) + (cctv || 0) > 0);
   const naPlan = $('#PLAN_NA').checked;
@@ -741,11 +812,12 @@ function buildPayload() {
     ECRD_HGT: tn ? num('TN_HGT') : null,
     ENTR_AREA: tn ? num('ENTR_AREA') : null,
     OPNSS: tn ? calcOpnss() : null,
-    LFSD_SLP_GRDNT: num('LFSD_SLP_GRDNT'), LFSD_SLP_GRDNT_STBLT_SE_CD: lfsd.cd,
-    RGSD_SLP_GRDNT: num('RGSD_SLP_GRDNT'), RGSD_SLP_GRDNT_STBLT_SE_CD: rgsd.cd,
-    INSD_SOIL_DPTH: num('INSD_SOIL_DPTH'), INSD_SOIL_DPTH_STBLT_SE_CD: soil.cd,
+    LFSD_SLP_GRDNT_STBLT_SE_CD: critVal('LFSD_SLP_GRDNT_STBLT_SE_CD'),
+    RGSD_SLP_GRDNT_STBLT_SE_CD: critVal('RGSD_SLP_GRDNT_STBLT_SE_CD'),
+    INSD_SOIL_DPTH_STBLT_SE_CD: critVal('INSD_SOIL_DPTH_STBLT_SE_CD'),
     ETC_USE_CMDTY_CN: radio('etcuse') === 'Y' ? str('ETC_USE_CMDTY_CN') : null,
     RMRK_CN: str('RMRK_CN'),
+    REG_STTS_SE_CD: REC.status, REG_CMPTN_DT: REC.cmptnDt,
   };
 
   const TB_ECRD_ANXFC = $$('#anxTbl tbody tr').map((tr) => {
@@ -766,7 +838,7 @@ function buildPayload() {
     MNTR_BGNG_YMD: ymd('MNTR_BGNG_YMD'), MNTR_END_YMD: ymd('MNTR_END_YMD'),
     MNTR_EQPMN_INSTL_EN: eqp,
     UMSCAM_INSTL_CNTOM: cam, CCTV_INSTL_CNTOM: cctv,
-    WANMLS_RDKL_NOCS: num('WANMLS_RDKL_NOCS'), ETC_ANML_RDKL_NOCS: num('ETC_ANML_RDKL_NOCS'),
+    WANMLS_RDKL_NOCS: rk.w, ETC_ANML_RDKL_NOCS: rk.e,
     VGTTN_MNG_PLAN_NA_YN: yn(naPlan),
     VGTTN_MNG_PLAN_DDTR_RMVL_YN: yn(!naPlan && $('#PLAN_DDTR').checked),
     VGTTN_MNG_PLAN_SPLPL_YN: yn(!naPlan && $('#PLAN_SPLPL').checked),
@@ -775,6 +847,7 @@ function buildPayload() {
     VGTTN_MNG_PLAN_ETC_YN: yn(!naPlan && $('#PLAN_ETC').checked),
     VGTTN_MNG_PLAN_ETC_CN: (!naPlan && $('#PLAN_ETC').checked) ? str('PLAN_ETC_CN') : null,
     PBPT_IMPV_CN: str('PBPT_IMPV_CN'),
+    REG_STTS_SE_CD: REC.status, REG_CMPTN_DT: REC.cmptnDt,
   };
 
   const pg = radio('pg') === 'Y', eu = radio('eu') === 'Y';
@@ -833,9 +906,10 @@ function validate(p) {
   if (E.ROAD_ATRB_SRC_SE_CD === 'RSLK' && !E.ROAD_LINK_ID) e.push('BR-11: 자동매칭 시 링크아이디 필수');
   if (E.ROAD_ATRB_SRC_SE_CD === 'RSMN' && E.ROAD_LINK_ID) e.push('BR-12: 수동입력 시 링크아이디 금지');
   if (!E.ROAD_GRD_SE_CD) e.push('BR: 도로등급 필수');
-  [['LFSD_SLP_GRDNT_STBLT_SE_CD', '좌측 사면경사도'], ['RGSD_SLP_GRDNT_STBLT_SE_CD', '우측 사면경사도'],
-   ['INSD_SOIL_DPTH_STBLT_SE_CD', '내부 토양깊이']].forEach(([k, nm]) => {
-    if (E[k] === 'STNM') w.push(`BR-09: ${nm} 기준 미충족 → 개선사항 기재 권고`);
+  CRIT.forEach(([k, nm]) => {
+    if (!E[k]) e.push(`BR-07/08: ${nm} 통과 여부 미선택`);
+    else if (E[k] === 'STFL') w.push(`BR-09: ${nm} 미통과 → 개선사항 기재 권고`);
+    else if (E[k] === 'STNA') w.push(`${nm} 확인불가로 기재됨`);
   });
   p.TB_ECRD_ANXFC.forEach((a) => {
     if (['AXWF', 'AXSF'].includes(a.ANXFC_SE_CD) && a.INSTL_EN === 'Y' && (a.FCLT_HGT === null || a.FCLT_LEN === null))
@@ -891,9 +965,12 @@ function jsonHtml(o) {
     .replace(/: (&quot;|")([^"]*)("|&quot;)/g, ': <span class="s">"$2"</span>');
 }
 function refresh() {
-  [['#lfsdView', calcLfsd()], ['#rgsdView', calcRgsd()], ['#soilView', calcSoil()]].forEach(([sel, r]) => {
-    $(sel).innerHTML = `<span class="pill ${r.cls}">${r.cd}</span> ${r.nm}`;
-  });
+  const rk = fetchRdkl();
+  $('#rdklWView').innerHTML = rk.w === null ? '<span class="nul">집계 대기</span>'
+    : `<span class="pill info">${rk.w}</span> 건`;
+  $('#rdklEView').innerHTML = rk.e === null ? '<span class="nul">집계 대기</span>'
+    : `<span class="pill info">${rk.e}</span> 건`;
+  $('#rdklCond').textContent = rk.cond || '모니터링 기간을 입력하면 자동 집계됩니다';
   const op = calcOpnss();
   $('#opnssView').innerHTML = op === null ? '<span class="nul">NULL</span>' : `${op}  <span class="hint">= 입구면적 ÷ 길이</span>`;
   const cam = num('UMSCAM_INSTL_CNTOM'), cctv = num('CCTV_INSTL_CNTOM');
@@ -913,8 +990,259 @@ function refresh() {
   const sum = $('#valSum');
   sum.innerHTML = v.e.length || v.w.length
     ? v.e.map((x) => `<span class="pill bad">${x}</span>`).join('') + v.w.map((x) => `<span class="pill warn">${x}</span>`).join('')
-    : '<span class="pill ok">검증 통과 — 저장 가능</span>';
+    : '<span class="pill ok">검증 통과 — 최종 등록 가능</span>';
+  paintStatus(v);
+  return { p, v };
+}
+
+/* 액션바의 상태 배지 — 지금 무엇을 할 수 있는지 한 줄로 알려준다 */
+function paintStatus(v) {
+  const b = $('#stBadge'), m = $('#actMsg');
+  if (REC.status === 'RSCM') {
+    b.className = 'pill ok'; b.textContent = '등록완료';
+    m.textContent = `${REC.cmptnDt} 등록됨 — 내용을 고치면 작성중으로 되돌아갑니다 (BR-58)`;
+  } else {
+    b.className = 'pill warn'; b.textContent = '작성중';
+    m.textContent = v.e.length ? `필수 항목 ${v.e.length}건이 남아 최종 등록할 수 없습니다 (BR-57)`
+                               : '최종 등록할 수 있습니다';
+  }
+  $('#btnSubmit').disabled = REC.status !== 'RSCM' && v.e.length > 0;
+}
+
+
+/* ══ 저장 · 최종 등록 · 관리대장 게시판 ═══════════════════════════
+   시제이므로 보관소는 브라우저 localStorage 다. 실제 구현에서는 이 자리가
+   TB_ECRD / TB_ECRD_MNTR 에 대한 저장 API 호출이 된다.
+   등록상태(REG_STTS_SE_CD)와 등록완료일시(REG_CMPTN_DT)는 화면 상태가 아니라
+   레코드에 저장되는 값이므로, 다른 기기에서 이어서 작성할 수 있다. */
+const LS = 'ecrd-ledger-v1';
+let REC = { id: null, status: 'RSWR', regDt: null, cmptnDt: null, mdfcnDt: null };
+
+const now = () => new Date().toLocaleString('sv-SE').slice(0, 19);
+const loadAll = () => { try { return JSON.parse(localStorage.getItem(LS)) || []; } catch (e) { return []; } };
+const saveAll = (a) => localStorage.setItem(LS, JSON.stringify(a));
+
+/* 화면 → 보관 가능한 값 묶음. 동적으로 만든 표는 행 단위로 따로 담는다. */
+function collectForm() {
+  const f = {};
+  $$('#viewEdit input[id], #viewEdit select[id], #viewEdit textarea[id]').forEach((e) => {
+    f[e.id] = e.type === 'checkbox' ? e.checked : e.value;
+  });
+  const rad = {};
+  $$('#viewEdit input[type=radio]').forEach((e) => { if (e.checked) rad[e.name] = e.value; });
+  return {
+    fields: f, radios: rad,
+    anx: $$('#anxTbl tbody tr').map((tr) => ({
+      cd: tr.dataset.cd, dir: tr.dataset.dir, en: $('.ax-en', tr).value,
+      hgt: ($('.ax-hgt', tr) || {}).value || '', len: ($('.ax-len', tr) || {}).value || '',
+      rmrk: ($('.ax-rmrk', tr) || {}).value || '' })),
+    mnx: $$('#mAnxTbl tbody tr').map((tr) => ({
+      cd: tr.dataset.cd, dir: tr.dataset.dir,
+      st: $('.mx-st', tr).value, dmg: $('.mx-dmg', tr).value })),
+    anml: $$('#anmlTbl tbody tr').map((tr) => ({
+      nm: $('.a-nm', tr).value, st: $('.a-st', tr).value,
+      mt: $('.a-mt', tr).value, fq: $('.a-fq', tr).value })),
+    plnt: $$('#plntTbl tbody tr').map((tr) => ({
+      ps: $('.p-ps', tr).value, ly: $('.p-ly', tr).value, nm: $('.p-nm', tr).value,
+      st: $('.p-st', tr).value, ds: $('.p-ds', tr).checked })),
+    road: roadState,
+  };
+}
+
+function applyForm(d) {
+  $$('#viewEdit input[id], #viewEdit select[id], #viewEdit textarea[id]').forEach((e) => {
+    const v = d.fields[e.id];
+    if (v === undefined) return;
+    if (e.type === 'checkbox') e.checked = v; else e.value = v;
+  });
+  $$('#viewEdit input[type=radio]').forEach((e) => { e.checked = d.radios[e.name] === e.value; });
+  roadState = d.road || { src: null, link: null, crtr: null };
+  setRoadEnabled(roadState.src === 'RSMN');
+  toggleType();
+  // 조건부 활성/비활성을 저장된 값에 맞춰 다시 적용한다
+  $('#INSTL_BSS_ETC_CN').disabled = d.radios.bss !== 'BSET';
+  [['etcuse', 'ETC_USE_CMDTY_CN'], ['pg', 'PGTLS_CN'], ['eu', 'M_ETC_USE_CMDTY_CN']]
+    .forEach(([n, id]) => { $('#' + id).disabled = d.radios[n] !== 'Y'; });
+  $('#PGTLS_ACTN_RSLT_SE_CD').disabled = d.radios.pg !== 'Y';
+  $('#ETC_USE_CMDTY_ACTN_RSLT_SE_CD').disabled = d.radios.eu !== 'Y';
+  $$('.plan').forEach((c) => { c.disabled = $('#PLAN_NA').checked; });
+  $('#PLAN_ETC_CN').disabled = !$('#PLAN_ETC').checked || $('#PLAN_NA').checked;
+
+  buildAnxfc();
+  (d.anx || []).forEach((a) => {
+    const tr = $$('#anxTbl tbody tr').find((x) => x.dataset.cd === a.cd && x.dataset.dir === a.dir);
+    if (!tr) return;
+    $('.ax-en', tr).value = a.en;
+    if ($('.ax-hgt', tr)) { $('.ax-hgt', tr).value = a.hgt; $('.ax-hgt', tr).disabled = a.en !== 'Y'; }
+    if ($('.ax-len', tr)) { $('.ax-len', tr).value = a.len; $('.ax-len', tr).disabled = a.en !== 'Y'; }
+    if ($('.ax-rmrk', tr)) $('.ax-rmrk', tr).value = a.rmrk;
+  });
+  syncMntrAnxfc();
+  (d.mnx || []).forEach((m) => {
+    const tr = $$('#mAnxTbl tbody tr').find((x) => x.dataset.cd === m.cd && x.dataset.dir === m.dir);
+    if (!tr) return;
+    const sel = $('.mx-st', tr);
+    if ([...sel.options].some((o) => o.value === m.st)) sel.value = m.st;
+    $('.mx-dmg', tr).value = m.dmg || '';
+    $('.mx-dmg', tr).disabled = sel.value !== 'CKRP';
+  });
+  $('#anmlTbl tbody').innerHTML = '';
+  (d.anml || []).forEach((a) => {
+    addAnmlRow(); const tr = $$('#anmlTbl tbody tr').slice(-1)[0];
+    $('.a-nm', tr).value = a.nm; $('.a-st', tr).value = a.st;
+    $('.a-mt', tr).value = a.mt; $('.a-fq', tr).value = a.fq;
+  });
+  $('#plntTbl tbody').innerHTML = '';
+  (d.plnt || []).forEach((p) => {
+    addPlntRow(); const tr = $$('#plntTbl tbody tr').slice(-1)[0];
+    $('.p-ps', tr).value = p.ps; $('.p-ly', tr).value = p.ly;
+    $('.p-nm', tr).value = p.nm; $('.p-st', tr).value = p.st; $('.p-ds', tr).checked = p.ds;
+  });
+  if (!$('#anmlTbl tbody').children.length) addAnmlRow();
+  if (!$('#plntTbl tbody').children.length) addPlntRow();
+  paintRoadState();
+}
+
+function resetForm() {
+  $$('#viewEdit input[id], #viewEdit select[id], #viewEdit textarea[id]').forEach((e) => {
+    if (e.type === 'checkbox') e.checked = false;
+    else if (e.id === 'RADIUS') e.value = '100';
+    else e.value = '';
+  });
+  $$('#viewEdit input[type=radio]').forEach((e) => { e.checked = (e.value === 'N'); });
+  roadState = { src: null, link: null, crtr: null };
+  setRoadEnabled(false);
+  $('#matchBox').innerHTML = '';
+  buildAnxfc(); syncMntrAnxfc();
+  $('#anmlTbl tbody').innerHTML = ''; addAnmlRow();
+  $('#plntTbl tbody').innerHTML = ''; addPlntRow();
+  toggleType(); paintRoadState();
+}
+
+/* 저장 — 작성중으로 보관한다. 등록완료 건을 고치면 작성중으로 되돌린다(BR-58). */
+function doSave(quiet) {
+  const all = loadAll();
+  if (!REC.id) { REC.id = 'E' + Date.now(); REC.regDt = now(); }
+  if (REC.status === 'RSCM') { REC.status = 'RSWR'; REC.cmptnDt = null; }
+  REC.mdfcnDt = now();
+  const rec = Object.assign({}, REC, { data: collectForm() });
+  const i = all.findIndex((x) => x.id === REC.id);
+  if (i < 0) all.push(rec); else all[i] = rec;
+  saveAll(all);
+  refresh();
+  if (!quiet) toast('저장했습니다 — 작성중 상태로 보관됩니다');
+}
+
+/* 최종 등록 — 오류 수준 규칙을 모두 통과해야 등록완료로 넘어간다(BR-57). */
+function doSubmit() {
+  const r = refresh();
+  if (r.v.e.length) { toast('필수 항목 ' + r.v.e.length + '건이 남아 있습니다', true); return; }
+  doSave(true);
+  const all = loadAll();
+  const i = all.findIndex((x) => x.id === REC.id);
+  REC.status = 'RSCM'; REC.cmptnDt = now();
+  all[i] = Object.assign({}, all[i], { status: REC.status, cmptnDt: REC.cmptnDt });
+  saveAll(all);
+  refresh();
+  toast('최종 등록되었습니다 — 관리대장 게시판으로 이동합니다');
+  setTimeout(() => showBoard(REC.id), 700);
+}
+
+function toast(msg, bad) {
+  $('#actMsg').innerHTML = '<span class="pill ' + (bad ? 'bad' : 'ok') + '">' + msg + '</span>';
+  setTimeout(refresh, 2600);
+}
+
+/* ── 화면 전환 ── */
+function showEdit() { $('#viewBoard').hidden = true; $('#viewEdit').hidden = false; window.scrollTo(0, 0); }
+function showBoard(hi) {
+  $('#viewEdit').hidden = true; $('#viewBoard').hidden = false;
+  renderBoard(hi); window.scrollTo(0, 0);
+}
+
+const roadOf = (d) => {
+  const g = d.fields.ROAD_GRD_SE_CD, nm = d.fields.ROAD_NM;
+  return (nm || '(도로명 없음)') + (g ? ' · ' + g + ' ' + (GRD_NM[g] || '') : '');
+};
+
+function renderBoard(hi) {
+  const all = loadAll();
+  const done = all.filter((r) => r.status === 'RSCM')
+    .sort((a, b) => (b.cmptnDt || '').localeCompare(a.cmptnDt || ''));
+  const draft = all.filter((r) => r.status !== 'RSCM')
+    .sort((a, b) => (b.mdfcnDt || '').localeCompare(a.mdfcnDt || ''));
+
+  const bt = $('#boardTbl tbody'); bt.innerHTML = '';
+  if (!done.length) bt.innerHTML = '<tr><td colspan="6" class="empty">최종 등록된 관리대장이 아직 없습니다.</td></tr>';
+  done.forEach((r) => {
+    const d = r.data, tr = document.createElement('tr');
+    tr.className = 'pick';
+    if (r.id === hi) tr.style.background = 'var(--ok-w)';
+    const et = d.radios.etype === 'TPTN' ? '터널형' : (d.radios.etype === 'TPOB' ? '육교형' : '—');
+    const mn = (d.fields.MNTR_BGNG_YMD && d.fields.MNTR_END_YMD)
+      ? d.fields.MNTR_BGNG_YMD + ' ~ ' + d.fields.MNTR_END_YMD : '—';
+    tr.innerHTML = '<td><b>' + (d.fields.ECRD_NM || '(이름 없음)') + '</b></td><td>' + roadOf(d) + '</td>'
+      + '<td class="c">' + et + '</td><td class="c">' + mn + '</td><td class="c">' + r.cmptnDt + '</td>'
+      + '<td class="c"><span class="pill info">상세</span></td>';
+    tr.onclick = () => showDetail(r.id);
+    bt.appendChild(tr);
+  });
+
+  const dt = $('#draftTbl tbody'); dt.innerHTML = '';
+  if (!draft.length) dt.innerHTML = '<tr><td colspan="4" class="empty">작성 중인 건이 없습니다.</td></tr>';
+  draft.forEach((r) => {
+    const d = r.data, tr = document.createElement('tr');
+    tr.className = 'pick';
+    tr.innerHTML = '<td><b>' + (d.fields.ECRD_NM || '(이름 없음)') + '</b></td><td>' + roadOf(d) + '</td>'
+      + '<td class="c">' + (r.mdfcnDt || '—') + '</td>'
+      + '<td class="c"><span class="pill warn">이어 작성</span></td>';
+    tr.onclick = () => openRec(r.id);
+    dt.appendChild(tr);
+  });
+  $('#detailBox').hidden = true;
+}
+
+/* 상세 — 폐지한 '저장 데이터 확인' 탭의 적재 형태 보기를 여기로 옮겼다 */
+function showDetail(id) {
+  const r = loadAll().find((x) => x.id === id);
+  if (!r) return;
+  openRec(id, true);            // 값을 화면에 올려 페이로드를 만든다
+  const p = buildPayload();
+  showBoard();
+  const box = $('#detailBox');
+  box.hidden = false;
+  box.innerHTML = '<h3 class="sub">' + (r.data.fields.ECRD_NM || '(이름 없음)')
+    + ' <span class="pill ok" style="margin-left:8px">등록완료 ' + r.cmptnDt + '</span></h3>'
+    + '<div class="rowbtns" style="margin-bottom:10px">'
+    + '<button type="button" class="ghost" id="btnEditRec">수정하기</button>'
+    + '<button type="button" class="ghost" id="btnCopy">JSON 복사</button>'
+    + '<button type="button" class="ghost" id="btnCloseDetail">닫기</button></div>'
+    + '<div class="note">아래는 이 대장이 <b>표준 테이블에 적재되는 형태</b>입니다. '
+    + '<span class="nul">null</span> 은 해당 컬럼에 NULL이 저장된다는 뜻입니다.</div>'
+    + '<pre id="jsonOut" style="margin-top:10px"></pre>';
   $('#jsonOut').innerHTML = jsonHtml(p);
+  $('#btnEditRec').onclick = () => { openRec(id); };
+  $('#btnCloseDetail').onclick = () => { box.hidden = true; };
+  $('#btnCopy').onclick = () => navigator.clipboard.writeText(JSON.stringify(p, null, 2))
+    .then(() => { $('#btnCopy').textContent = '복사됨'; });
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openRec(id, silent) {
+  const r = loadAll().find((x) => x.id === id);
+  if (!r) return;
+  REC = { id: r.id, status: r.status, regDt: r.regDt, cmptnDt: r.cmptnDt, mdfcnDt: r.mdfcnDt };
+  applyForm(r.data);
+  refresh();
+  if (!silent) showEdit();
+}
+
+function newRec(withSample) {
+  REC = { id: null, status: 'RSWR', regDt: null, cmptnDt: null, mdfcnDt: null };
+  resetForm();
+  if (withSample) sample();
+  refresh();
+  showEdit();
 }
 
 /* ── 초기화 ─────────────────────────────────────────────── */
@@ -962,16 +1290,23 @@ function sample() {
   toggleType();
   document.querySelector('input[name=tnt][value=TNRT]').checked = true;
   $('#TN_LEN').value = '42.5'; $('#TN_WDT').value = '12'; $('#TN_HGT').value = '6.5'; $('#ENTR_AREA').value = '78';
-  $('#LFSD_SLP_GRDNT').value = '22.4'; $('#RGSD_SLP_GRDNT').value = '31.2';
-  $('#INSD_SOIL_DPTH').value = '65';
+  // 입지 기준 — 좌측은 통과, 우측은 미통과, 토양깊이는 미통과로 두어 경고가 뜨는 것을 보여준다
+  [['LFSD_SLP_GRDNT_STBLT_SE_CD', 'STPS'], ['RGSD_SLP_GRDNT_STBLT_SE_CD', 'STFL'],
+   ['INSD_SOIL_DPTH_STBLT_SE_CD', 'STFL']].forEach(([k, v]) => {
+    const r = document.querySelector(`input[name="crit_${k}"][value="${v}"]`);
+    if (r) r.checked = true;
+  });
   // 부대시설: 안내표지판(필수)만 설치, 방음벽(필수)·내부 수로(권고)는 미설치 → 모니터링 선택지가 갈리는 것을 보여준다
   $$('#anxTbl tbody tr').forEach((tr) => {
     const s = $('.ax-en', tr);
     s.value = tr.dataset.cd === 'AXSB' ? 'Y' : 'N';
     s.onchange();
   });
+  $('#MNTR_INST_NM').value = '국립생태원'; $('#EXMNR_NM').value = '홍길동';
+  $('#FCLT_EXMNR_NM').value = '홍길동';
   $('#MNTR_BGNG_YMD').value = '2026-03-01'; $('#MNTR_END_YMD').value = '2026-05-31';
   $('#UMSCAM_INSTL_CNTOM').value = '4';
+  $('#HMN_UTZTN_FREQ_CNT').value = '3';
   if (!$('#anmlTbl tbody').children.length) { addAnmlRow(); addAnmlRow(); }
   const rows = $$('#anmlTbl tbody tr');
   $('.a-nm', rows[0]).value = '고라니'; $('.a-fq', rows[0]).value = '37';
@@ -988,7 +1323,7 @@ function init() {
     $$('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
     $$('.pane').forEach((p) => { p.hidden = p.id !== t.dataset.p; });
     if (t.dataset.p === 'p2') syncMntrAnxfc();   // 시설정보를 고친 뒤 넘어오면 점검 표를 다시 만든다
-    if (t.dataset.p === 'p3') refresh();
+    refresh();
   });
   $('#btnTheme').onclick = () => {
     const cur = document.documentElement.getAttribute('data-theme');
@@ -998,10 +1333,13 @@ function init() {
   $('#btnMatch').onclick = doMatch;
   $('#btnManual').onclick = goManual;
   $('#btnRetry').onclick = ping;
-  $('#btnRefresh').onclick = refresh;
-  $('#btnSample').onclick = sample;
-  $('#btnCopy').onclick = () => navigator.clipboard.writeText(JSON.stringify(buildPayload(), null, 2))
-    .then(() => { $('#btnCopy').textContent = '복사됨'; setTimeout(() => $('#btnCopy').textContent = 'JSON 복사', 1200); });
+  $('#btnRdkl').onclick = () => { refresh(); toast('로드킬 정보를 다시 집계했습니다'); };
+  // 게시판 · 등록 절차
+  $('#btnNew').onclick = () => newRec(false);
+  $('#btnSample').onclick = () => newRec(true);
+  $('#btnBack').onclick = () => showBoard();
+  $('#btnSave').onclick = () => doSave();
+  $('#btnSubmit').onclick = doSubmit;
   $('#addAnml').onclick = addAnmlRow;
   $('#addPlnt').onclick = addPlntRow;
   $$('input[name=etype]').forEach((r) => r.onchange = toggleType);
@@ -1029,11 +1367,13 @@ function init() {
     refresh();
   };
   $('#ROAD_GRD_SE_CD').onchange = refresh;
-  document.addEventListener('input', (e) => { if (e.target.closest('.pane')) refresh(); });
-  document.addEventListener('change', (e) => { if (e.target.closest('.pane')) refresh(); });
-  buildAnxfc(); syncMntrAnxfc(); addAnmlRow(); addPlntRow();
+  document.addEventListener('input', (e) => { if (e.target.closest('#viewEdit')) refresh(); });
+  document.addEventListener('change', (e) => { if (e.target.closest('#viewEdit')) refresh(); });
+  buildCrit(); buildAnxfc(); syncMntrAnxfc(); addAnmlRow(); addPlntRow();
   toggleType(); ping(); refresh();
+  showBoard();          // 시작 화면은 관리대장 게시판
 }
+
 init();
 </script>
 </body>
