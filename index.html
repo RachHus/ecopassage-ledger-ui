@@ -122,6 +122,27 @@ pre{background:var(--auto);border:1px solid var(--line);border-radius:9px;paddin
 .boardhead h2{margin:0;font-size:19px}
 h3.sub{font-size:14px;margin:22px 0 8px;color:var(--sub)}
 tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
+/* 지도 — 배경지도 없이 표준노드링크 도로망을 직접 그린다 */
+.mapwrap{position:relative;border:1px solid var(--line);border-radius:11px;overflow:hidden;
+  background:var(--auto);margin-top:12px}
+#roadMap{display:block;width:100%;height:420px;cursor:crosshair;touch-action:none}
+.maptools{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:5px}
+.maptools button{width:32px;height:32px;padding:0;font-size:15px;line-height:1;border-radius:8px;
+  background:var(--card);border:1px solid var(--line);color:var(--ink);cursor:pointer;font-weight:700}
+.maptools button:hover{border-color:var(--brand);color:var(--brand)}
+.maphint{position:absolute;left:10px;top:10px;background:var(--card);border:1px solid var(--line);
+  border-radius:8px;padding:6px 10px;font-size:12px;color:var(--sub);pointer-events:none;max-width:60%}
+.mapscale{position:absolute;left:10px;bottom:10px;background:var(--card);border:1px solid var(--line);
+  border-radius:7px;padding:3px 8px;font:11px var(--mono);color:var(--sub)}
+.maplegend{position:absolute;right:10px;bottom:10px;background:var(--card);border:1px solid var(--line);
+  border-radius:8px;padding:7px 10px;font-size:11px;line-height:1.8;color:var(--sub)}
+.maplegend i{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+.maptip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;border-radius:7px;
+  padding:7px 10px;font-size:11.5px;line-height:1.65;white-space:nowrap;z-index:4;display:none;
+  box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.maptip b{color:#8fe3c2}
+.nearby td{font-size:12px}
+.nearby tr.hi{background:var(--brand-w)}
 .empty{color:var(--sub);font-size:13px;text-align:center;padding:18px}
 </style>
 </head>
@@ -202,8 +223,29 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
         </div>
       </div>
     </div>
+    <div class="mapwrap">
+      <canvas id="roadMap"></canvas>
+      <div class="maphint" id="mapHint">지도를 클릭하면 그 지점의 좌표가 입력됩니다. 도로 위에 올리면 정보가 표시됩니다.</div>
+      <div class="maptools">
+        <button type="button" id="mapIn" title="확대">+</button>
+        <button type="button" id="mapOut" title="축소">−</button>
+        <button type="button" id="mapHome" title="입력 좌표로 이동">◎</button>
+      </div>
+      <div class="mapscale" id="mapScale">—</div>
+      <div class="maplegend" id="mapLegend"></div>
+      <div class="maptip" id="mapTip"></div>
+    </div>
     <div id="demoPts" hidden></div>
     <div id="matchBox"></div>
+
+    <div id="nearbyBox" hidden>
+      <p class="hint" style="margin:12px 0 6px">반경 내 도로 — 표준노드링크에 기록된 주요 정보입니다.
+        행에 마우스를 올리면 지도에서 해당 도로가 강조됩니다.</p>
+      <div class="tblwrap"><table id="nearbyTbl" class="nearby">
+        <thead><tr><th class="c">거리</th><th>도로명</th><th class="c">등급</th><th class="c">노선</th>
+          <th class="c">왕복차로</th><th class="c">제한속도</th><th class="c">링크 ID</th><th class="c">기준일</th></tr></thead>
+        <tbody></tbody></table></div>
+    </div>
 
     <div class="sep"></div>
     <div class="grid">
@@ -644,6 +686,293 @@ function paintDemoPts() {
   });
 }
 
+
+/* ══ 지도 — 표준노드링크 도로망을 직접 그린다 ═══════════════════════
+   배경지도 타일 서버를 쓰지 않는다. 확인 대상이 도로 자체이고,
+   외부 의존 없이 내부망에서도 열려야 하기 때문이다.
+   EPSG:5186 은 등거리에 가까운 평면좌표라 화면에 그대로 옮겨 그려도 왜곡이 없다. */
+
+/* TM → 위경도 역변환 (roadmatch.py 의 to_wgs 와 같은 식) */
+function toWGS(x, y) {
+  const M0 = meridianArc(LAT0);
+  const M = M0 + (y - FN) / K0;
+  const mu = M / (A * (1 - E2 / 4 - 3 * E2 ** 2 / 64 - 5 * E2 ** 3 / 256));
+  const e1 = (1 - Math.sqrt(1 - E2)) / (1 + Math.sqrt(1 - E2));
+  const p1 = mu + (3 * e1 / 2 - 27 * e1 ** 3 / 32) * Math.sin(2 * mu)
+    + (21 * e1 ** 2 / 16 - 55 * e1 ** 4 / 32) * Math.sin(4 * mu)
+    + (151 * e1 ** 3 / 96) * Math.sin(6 * mu)
+    + (1097 * e1 ** 4 / 512) * Math.sin(8 * mu);
+  const s1 = Math.sin(p1), c1 = Math.cos(p1), t1 = Math.tan(p1) ** 2;
+  const C1 = EP2 * c1 * c1;
+  const N1 = A / Math.sqrt(1 - E2 * s1 * s1);
+  const R1 = A * (1 - E2) / (1 - E2 * s1 * s1) ** 1.5;
+  const D = (x - FE) / (N1 * K0);
+  const lat = p1 - (N1 * Math.tan(p1) / R1) * (D * D / 2
+    - (5 + 3 * t1 + 10 * C1 - 4 * C1 * C1 - 9 * EP2) * D ** 4 / 24
+    + (61 + 90 * t1 + 298 * C1 + 45 * t1 * t1 - 252 * EP2 - 3 * C1 * C1) * D ** 6 / 720);
+  const lon = LON0 + (D - (1 + 2 * t1 + C1) * D ** 3 / 6
+    + (5 - 2 * C1 + 28 * t1 - 3 * C1 * C1 + 8 * EP2 + 24 * t1 * t1) * D ** 5 / 120) / c1;
+  return [lat * 180 / Math.PI, lon * 180 / Math.PI];
+}
+
+/* 도로등급별 표현 — 굵기·색으로 위계가 한눈에 보이게 한다 */
+const RANK_STYLE = {
+  101: ['#d94a38', 3.4], 102: ['#e07a2f', 3.0], 103: ['#2f6fd0', 2.6],
+  104: ['#3f8f6f', 2.2], 105: ['#8a6fc4', 2.0], 106: ['#5c8a3a', 1.8],
+  107: ['#93a29c', 1.3], 108: ['#b9b2a6', 1.1],
+};
+const rankStyle = (r) => RANK_STYLE[r] || ['#a8b2ad', 1.2];
+
+const MAP = {
+  cx: 0, cy: 0, mpp: 4,            // 중심 TM 좌표 · m/px
+  cvs: null, ctx: null, w: 0, h: 0,
+  rows: [],                        // 화면에 그린 링크 구간 (히트테스트용)
+  hi: null, pick: null,            // hover 대상 · 선택 확정된 링크 ID
+  ready: false,
+};
+
+async function tilesForBox(x0, y0, x1, y1) {
+  await loadIndex();
+  const S = TIDX.tile, out = [];
+  const tx0 = Math.floor(x0 / S), tx1 = Math.floor(x1 / S);
+  const ty0 = Math.floor(y0 / S), ty1 = Math.floor(y1 / S);
+  const need = (tx1 - tx0 + 1) * (ty1 - ty0 + 1);
+  if (need > 25) return null;      // 너무 넓게 축소하면 도로를 그리지 않는다
+  const jobs = [];
+  for (let tx = tx0; tx <= tx1; tx++)
+    for (let ty = ty0; ty <= ty1; ty++) jobs.push(getTile(tx, ty));
+  for (const t of await Promise.all(jobs)) if (t) out.push(t);
+  return out;
+}
+
+function mapResize() {
+  const c = MAP.cvs, r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  MAP.w = r.width; MAP.h = r.height;
+  c.width = Math.round(r.width * d); c.height = Math.round(r.height * d);
+  MAP.ctx.setTransform(d, 0, 0, d, 0, 0);
+}
+
+const sx = (x) => (x - MAP.cx) / MAP.mpp + MAP.w / 2;   // TM → 화면
+const sy = (y) => MAP.h / 2 - (y - MAP.cy) / MAP.mpp;
+const ux = (px) => MAP.cx + (px - MAP.w / 2) * MAP.mpp; // 화면 → TM
+const uy = (py) => MAP.cy + (MAP.h / 2 - py) * MAP.mpp;
+
+let mapPending = 0;
+async function drawMap() {
+  if (!MAP.ctx) return;
+  const seq = ++mapPending;
+  const g = MAP.ctx, w = MAP.w, h = MAP.h;
+  const x0 = ux(0), x1 = ux(w), y0 = uy(h), y1 = uy(0);
+  let tiles = null;
+  try { tiles = await tilesForBox(x0, y0, x1, y1); } catch (e) { tiles = []; }
+  if (seq !== mapPending) return;                       // 더 최근 요청이 있으면 버린다
+
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = getComputedStyle(document.body).getPropertyValue('--auto') || '#f4f7f5';
+  g.fillRect(0, 0, w, h);
+  MAP.rows = [];
+
+  if (tiles === null) {
+    g.fillStyle = '#8a968f'; g.font = '13px sans-serif'; g.textAlign = 'center';
+    g.fillText('확대하면 도로망이 표시됩니다', w / 2, h / 2 - 10);
+    g.textAlign = 'left';
+  } else {
+    // 등급이 낮은 도로부터 그려 주요 도로가 위로 오게 한다
+    const items = [];
+    for (const t of tiles) {
+      const [ox, oy] = t.o;
+      for (const row of t.l) {
+        const g2 = row[7]; let X = ox, Y = oy;
+        const pts = [];
+        let vis = false;
+        for (let i = 0; i < g2.length; i += 2) {
+          X += g2[i]; Y += g2[i + 1];
+          const px = sx(X), py = sy(Y);
+          pts.push(px, py);
+          if (px >= -50 && px <= w + 50 && py >= -50 && py <= h + 50) vis = true;
+        }
+        if (vis) items.push({ row, pts, name: row[3] >= 0 ? t.n[row[3]] : null });
+      }
+    }
+    items.sort((a, b) => (b.row[1] || 999) - (a.row[1] || 999));
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const it of items) {
+      const [col, wd] = rankStyle(+it.row[1]);
+      const sel = MAP.pick && it.row[0] === MAP.pick;
+      const hov = MAP.hi && it.row[0] === MAP.hi;
+      g.strokeStyle = sel ? '#1f6f54' : (hov ? '#111' : col);
+      g.lineWidth = (sel || hov) ? wd + 2.6 : wd;
+      g.beginPath();
+      g.moveTo(it.pts[0], it.pts[1]);
+      for (let i = 2; i < it.pts.length; i += 2) g.lineTo(it.pts[i], it.pts[i + 1]);
+      g.stroke();
+      MAP.rows.push(it);
+    }
+    // 주요 도로 이름 — 겹치지 않게 굵은 등급만, 일정 간격으로
+    if (MAP.mpp < 12) {
+      g.font = '600 11px sans-serif'; g.textBaseline = 'middle';
+      const used = [];
+      for (const it of items) {
+        if (!it.name || +it.row[1] > 106) continue;
+        const i = Math.floor(it.pts.length / 4) * 2;
+        const px = it.pts[i], py = it.pts[i + 1];
+        if (px < 40 || px > w - 40 || py < 14 || py > h - 14) continue;
+        if (used.some((u) => Math.abs(u[0] - px) < 90 && Math.abs(u[1] - py) < 20)) continue;
+        used.push([px, py]);
+        g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.85)';
+        g.strokeText(it.name, px, py);
+        g.fillStyle = '#2c3a34'; g.fillText(it.name, px, py);
+        if (used.length > 14) break;
+      }
+    }
+  }
+
+  // 선택 좌표 마커 + 탐색 반경
+  const lat = num('LAT'), lon = num('LOT');
+  if (lat !== null && lon !== null) {
+    const [mx, my] = toTM(lat, lon);
+    const px = sx(mx), py = sy(my);
+    const rad = (Math.min(500, num('RADIUS') || 100)) / MAP.mpp;
+    g.beginPath(); g.arc(px, py, rad, 0, 7);
+    g.fillStyle = 'rgba(31,111,84,.10)'; g.fill();
+    g.strokeStyle = 'rgba(31,111,84,.55)'; g.lineWidth = 1.4; g.setLineDash([5, 4]); g.stroke();
+    g.setLineDash([]);
+    g.beginPath(); g.arc(px, py, 6, 0, 7);
+    g.fillStyle = '#1f6f54'; g.fill();
+    g.strokeStyle = '#fff'; g.lineWidth = 2.4; g.stroke();
+  }
+
+  // 축척 막대
+  const target = 90, raw = target * MAP.mpp;
+  const pow = 10 ** Math.floor(Math.log10(raw));
+  const nice = [1, 2, 5, 10].map((k) => k * pow).find((v) => v >= raw / 2) || pow;
+  $('#mapScale').textContent = (nice >= 1000 ? (nice / 1000) + ' km' : nice + ' m');
+  $('#mapScale').style.borderBottom = '3px solid var(--brand)';
+  $('#mapScale').style.minWidth = (nice / MAP.mpp) + 'px';
+  $('#mapScale').style.display = 'inline-block';
+  $('#mapScale').style.textAlign = 'center';
+}
+
+function paintLegend() {
+  $('#mapLegend').innerHTML = [101, 103, 104, 106, 107].map((r) => {
+    const [c, w] = rankStyle(r);
+    return `<div><i style="background:${c};height:${Math.max(2, w)}px"></i>${r} ${GRD_NM[r]}</div>`;
+  }).join('');
+}
+
+/* 화면 좌표에서 가장 가까운 도로 (히트테스트) */
+function hitRoad(px, py, tol) {
+  let best = null, bd = tol;
+  for (const it of MAP.rows) {
+    const p = it.pts;
+    for (let i = 2; i < p.length; i += 2) {
+      const d = segDist(px, py, p[i - 2], p[i - 1], p[i], p[i + 1]);
+      if (d < bd) { bd = d; best = it; }
+    }
+  }
+  return best;
+}
+
+function centerOnInput(zoom) {
+  const lat = num('LAT'), lon = num('LOT');
+  if (lat === null || lon === null) return false;
+  const [x, y] = toTM(lat, lon);
+  MAP.cx = x; MAP.cy = y;
+  if (zoom) MAP.mpp = 3;
+  return true;
+}
+
+function initMap() {
+  const c = $('#roadMap');
+  if (!c) return;
+  MAP.cvs = c; MAP.ctx = c.getContext('2d');
+  mapResize();
+  if (!centerOnInput(false)) { const [x, y] = toTM(36.5, 127.8); MAP.cx = x; MAP.cy = y; MAP.mpp = 900; }
+  paintLegend();
+  MAP.ready = true;
+  drawMap();
+
+  let drag = null, moved = 0;
+  c.addEventListener('pointerdown', (e) => {
+    drag = { x: e.offsetX, y: e.offsetY, cx: MAP.cx, cy: MAP.cy }; moved = 0;
+    c.setPointerCapture(e.pointerId);
+  });
+  c.addEventListener('pointermove', (e) => {
+    if (drag) {
+      const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y;
+      moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
+      MAP.cx = drag.cx - dx * MAP.mpp; MAP.cy = drag.cy + dy * MAP.mpp;
+      drawMap();
+      return;
+    }
+    const it = hitRoad(e.offsetX, e.offsetY, 7);
+    const id = it ? it.row[0] : null;
+    const tip = $('#mapTip');
+    if (id !== MAP.hi) { MAP.hi = id; drawMap(); }
+    if (it) {
+      const r = it.row;
+      tip.innerHTML = `<b>${it.name || '(도로명 없음)'}</b><br>` +
+        `${r[1] || '—'} ${GRD_NM[r[1]] || ''}` +
+        (r[2] ? ` · 노선 ${r[2]}` : '') +
+        (typeof r[4] === 'number' ? ` · 왕복 ${r[4] * 2}차로` : '') +
+        (r[5] ? ` · 제한 ${r[5]}km/h` : '') +
+        `<br><span style="opacity:.7">링크 ${r[0]}${r[6] ? ' · 기준일 ' + r[6] : ''}</span>`;
+      tip.style.display = 'block';
+      tip.style.left = Math.min(e.offsetX + 14, MAP.w - 230) + 'px';
+      tip.style.top = Math.max(6, e.offsetY - 54) + 'px';
+    } else tip.style.display = 'none';
+  });
+  c.addEventListener('pointerup', (e) => {
+    const wasDrag = drag && moved > 4;
+    drag = null;
+    if (wasDrag) return;
+    // 클릭 = 좌표 지정
+    const [lat, lon] = toWGS(ux(e.offsetX), uy(e.offsetY));
+    if (lat < 33 || lat > 39 || lon < 124 || lon > 132) {
+      $('#mapHint').textContent = '대한민국 좌표 범위를 벗어난 지점입니다.';
+      return;
+    }
+    $('#LAT').value = lat.toFixed(7); $('#LOT').value = lon.toFixed(7);
+    $('#mapHint').textContent = `좌표 ${lat.toFixed(6)}, ${lon.toFixed(6)} — 도로를 조회합니다…`;
+    drawMap(); refresh(); doMatch();
+  });
+  c.addEventListener('pointerleave', () => { $('#mapTip').style.display = 'none'; });
+  c.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const k = e.deltaY > 0 ? 1.35 : 1 / 1.35;
+    const bx = ux(e.offsetX), by = uy(e.offsetY);
+    MAP.mpp = Math.max(0.4, Math.min(4000, MAP.mpp * k));
+    MAP.cx = bx - (e.offsetX - MAP.w / 2) * MAP.mpp;
+    MAP.cy = by + (MAP.h / 2 - e.offsetY) * MAP.mpp;
+    drawMap();
+  }, { passive: false });
+  window.addEventListener('resize', () => { mapResize(); drawMap(); });
+}
+
+/* 조회 결과를 표로 — 표준노드링크가 가진 주요 정보를 그대로 보여준다 */
+function paintNearby(list) {
+  const box = $('#nearbyBox'), tb = $('#nearbyTbl tbody');
+  tb.innerHTML = '';
+  if (!list.length) { box.hidden = true; return; }
+  box.hidden = false;
+  list.forEach((c) => {
+    const tr = document.createElement('tr');
+    const [col] = rankStyle(+c.ROAD_GRD_SE_CD);
+    tr.innerHTML = `<td class="c"><b>${c._dist_m}</b> m</td>` +
+      `<td><span style="display:inline-block;width:12px;height:3px;background:${col};` +
+      `border-radius:2px;margin-right:6px;vertical-align:middle"></span>${c.ROAD_NM || '(도로명 없음)'}</td>` +
+      `<td class="c">${c.ROAD_GRD_SE_CD} ${c.ROAD_GRD_SE_NM}</td>` +
+      `<td class="c">${c.ROAD_RTE_NO || '—'}</td>` +
+      `<td class="c">${c.BTWYS_LANE_CNT != null ? c.BTWYS_LANE_CNT + '차로' : '—'}</td>` +
+      `<td class="c">${c._max_spd ? c._max_spd + ' km/h' : '—'}</td>` +
+      `<td class="c" style="font:11px var(--mono)">${c.ROAD_LINK_ID}</td>` +
+      `<td class="c" style="font:11px var(--mono)">${c.ROAD_ATRB_CRTR_YMD || '—'}</td>`;
+    tr.onmouseenter = () => { MAP.hi = c.ROAD_LINK_ID; tr.classList.add('hi'); drawMap(); };
+    tr.onmouseleave = () => { MAP.hi = null; tr.classList.remove('hi'); drawMap(); };
+    tb.appendChild(tr);
+  });
+}
+
 /* ── 도로 매칭 ───────────────────────────────────────────── */
 let roadState = { src: null, link: null, crtr: null };
 const ROAD_FIELDS = ['ROAD_GRD_SE_CD', 'ROAD_RTE_NO', 'ROAD_NM', 'BTWYS_LANE_CNT'];
@@ -664,11 +993,13 @@ function applyCandidate(c) {
   $('#ROAD_NM').value = c.ROAD_NM || '';
   $('#BTWYS_LANE_CNT').value = c.BTWYS_LANE_CNT == null ? '' : c.BTWYS_LANE_CNT;
   roadState = { src: 'RSLK', link: c.ROAD_LINK_ID, crtr: c.ROAD_ATRB_CRTR_YMD };
+  MAP.pick = c.ROAD_LINK_ID; drawMap();
   setRoadEnabled(false);
   paintRoadState(); refresh();
 }
 function goManual() {
   roadState = { src: 'RSMN', link: null, crtr: ymd('CMCN_YMD') || null };
+  MAP.pick = null; drawMap();
   setRoadEnabled(true);
   $('#matchBox').innerHTML =
     '<div class="alert">수동입력 모드입니다. 해당 위치에 도로 공간정보가 없거나 매칭 결과가 실제와 다를 때 사용합니다. ' +
@@ -692,10 +1023,13 @@ async function doMatch() {
     return;
   }
   if (!j.count) {
+    paintNearby([]);
     box.innerHTML = `<div class="alert">반경 ${j.radius_m}m 내에 도로 공간정보가 없습니다. 반경을 넓히거나 수동입력으로 전환하세요.` +
       '<br><span class="hint">반경을 넓히거나, 실제 횡단 도로가 표준노드링크에 없는 위치라면 수동입력을 쓰세요.</span></div>';
     return;
   }
+  paintNearby(j.candidates);
+  if (MAP.ready) { centerOnInput(MAP.mpp > 60); drawMap(); }
   const multi = j.count > 1;
   box.innerHTML = `<div class="cands"></div>` +
     (multi ? '<p class="hint" style="margin:8px 0 0">후보가 2건 이상입니다(중용구간 등). 실제 횡단 도로를 직접 선택하세요.</p>' : '');
@@ -1146,6 +1480,7 @@ function resetForm() {
   roadState = { src: null, link: null, crtr: null };
   setRoadEnabled(false);
   $('#matchBox').innerHTML = '';
+  MAP.pick = null; MAP.hi = null; paintNearby([]);
   buildAnxfc(); syncMntrAnxfc();
   $('#anmlTbl tbody').innerHTML = ''; addAnmlRow();
   $('#plntTbl tbody').innerHTML = ''; addPlntRow();
@@ -1187,7 +1522,11 @@ function toast(msg, bad) {
 }
 
 /* ── 화면 전환 ── */
-function showEdit() { $('#viewBoard').hidden = true; $('#viewEdit').hidden = false; window.scrollTo(0, 0); }
+function showEdit() {
+  $('#viewBoard').hidden = true; $('#viewEdit').hidden = false; window.scrollTo(0, 0);
+  // 숨겨져 있는 동안에는 캔버스 크기가 0이므로, 보이는 시점에 다시 잰다
+  if (MAP.ready) { mapResize(); drawMap(); }
+}
 function showBoard(hi) {
   $('#viewEdit').hidden = true; $('#viewBoard').hidden = false;
   renderBoard(hi); window.scrollTo(0, 0);
@@ -1348,6 +1687,7 @@ function init() {
     $$('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
     $$('.pane').forEach((p) => { p.hidden = p.id !== t.dataset.p; });
     if (t.dataset.p === 'p2') syncMntrAnxfc();   // 시설정보를 고친 뒤 넘어오면 점검 표를 다시 만든다
+    if (t.dataset.p === 'p1' && MAP.ready) { mapResize(); drawMap(); }
     refresh();
   });
   $('#btnTheme').onclick = () => {
@@ -1359,6 +1699,12 @@ function init() {
   $('#btnManual').onclick = goManual;
   $('#btnRetry').onclick = ping;
   $('#btnRdkl').onclick = () => { refresh(); toast('로드킬 정보를 다시 집계했습니다'); };
+  $('#mapIn').onclick = () => { MAP.mpp = Math.max(0.4, MAP.mpp / 1.6); drawMap(); };
+  $('#mapOut').onclick = () => { MAP.mpp = Math.min(4000, MAP.mpp * 1.6); drawMap(); };
+  $('#mapHome').onclick = () => { if (centerOnInput(true)) drawMap(); };
+  ['LAT', 'LOT', 'RADIUS'].forEach((id) => $('#' + id).addEventListener('change', () => {
+    if (MAP.ready) { centerOnInput(MAP.mpp > 60); drawMap(); }
+  }));
   // 게시판 · 등록 절차
   $('#btnNew').onclick = () => newRec(false);
   $('#btnSample').onclick = () => newRec(true);
@@ -1396,6 +1742,7 @@ function init() {
   document.addEventListener('change', (e) => { if (e.target.closest('#viewEdit')) refresh(); });
   buildCrit(); buildAnxfc(); syncMntrAnxfc(); addAnmlRow(); addPlntRow();
   toggleType(); ping(); refresh();
+  initMap();
   showBoard();          // 시작 화면은 관리대장 게시판
 }
 
