@@ -527,10 +527,11 @@ function calcOpnss() {
   return Math.round((a / l) * 1000) / 1000;
 }
 
-/* ── 오프라인 데모 매칭 ──────────────────────────────────────
-   매칭 API가 없는 환경(GitHub Pages 등)에서도 자동조회 흐름을 그대로 보여주기 위한 대체 경로.
-   demo_links.json 은 표준노드링크에서 데모 지점 주변만 잘라낸 부분집합이며,
-   좌표 변환·최단거리 계산은 roadmatch.py 와 같은 식을 쓴다. 결과 형식도 API 응답과 동일하다. */
+/* ══ 도로망 조회 — 국토교통부 표준노드링크 타일 색인 ═══════════════
+   원본 gpkg 는 575MB 라 그대로 올릴 수 없어, 전국을 10km 격자로 나누고
+   조회 반경 상한(500m)만큼 넓혀 담은 타일로 만들어 두었다(roadtiles/).
+   좌표가 속한 타일 하나만 받으면 주변 500m 도로가 전부 들어 있으므로
+   이웃 타일을 챙길 필요가 없다. 좌표변환·최단거리 식은 서버(roadmatch.py)와 같다. */
 const A = 6378137.0, F = 1 / 298.257222101;
 const E2 = F * (2 - F), EP2 = E2 / (1 - E2);
 const LAT0 = 38 * Math.PI / 180, LON0 = 127 * Math.PI / 180;
@@ -543,8 +544,8 @@ function meridianArc(lat) {
 }
 function toTM(latDeg, lonDeg) {
   const lat = latDeg * Math.PI / 180, lon = lonDeg * Math.PI / 180;
-  const s = Math.sin(lat), t = Math.tan(lat) ** 2, c = EP2 * Math.cos(lat) ** 2;
-  const n = A / Math.sqrt(1 - E2 * s * s), a_ = Math.cos(lat) * (lon - LON0);
+  const s_ = Math.sin(lat), t = Math.tan(lat) ** 2, c = EP2 * Math.cos(lat) ** 2;
+  const n = A / Math.sqrt(1 - E2 * s_ * s_), a_ = Math.cos(lat) * (lon - LON0);
   const x = K0 * n * (a_ + (1 - t + c) * a_ ** 3 / 6
     + (5 - 18 * t + t * t + 72 * c - 58 * EP2) * a_ ** 5 / 120) + FE;
   const y = K0 * (meridianArc(lat) - meridianArc(LAT0) + n * Math.tan(lat) * (a_ * a_ / 2
@@ -559,51 +560,92 @@ function segDist(px, py, x1, y1, x2, y2) {
   u = u < 0 ? 0 : (u > 1 ? 1 : u);
   return Math.hypot(px - (x1 + u * dx), py - (y1 + u * dy));
 }
-let DEMO = null;
+
 const GRD_NM = { 101: '고속국도', 102: '도시고속국도', 103: '일반국도', 104: '특별·광역시도',
                  105: '국가지원지방도', 106: '지방도', 107: '시·군도', 108: '기타' };
-const nz = (v) => { const s = v == null ? '' : String(v).trim(); return (s === '' || s === '-') ? null : s; };
+const nz = (v) => { const t = v == null ? '' : String(v).trim(); return (t === '' || t === '-') ? null : t; };
 
-function demoMatch(lat, lon, radius) {
-  const [px, py] = toTM(lat, lon);
-  const out = [];
-  for (const L of DEMO.links) {
-    let best = Infinity;
-    for (const g of L.g) for (let i = 0; i < g.length - 1; i++) {
-      const d = segDist(px, py, g[i][0], g[i][1], g[i + 1][0], g[i + 1][1]);
-      if (d < best) best = d;
-    }
-    if (best <= radius) out.push({
-      ROAD_LINK_ID: nz(L.id), ROAD_GRD_SE_CD: nz(L.rank), ROAD_GRD_SE_NM: GRD_NM[L.rank] || '',
-      ROAD_RTE_NO: nz(L.no), ROAD_NM: nz(L.name),
-      BTWYS_LANE_CNT: typeof L.lanes === 'number' ? L.lanes * 2 : null,
-      ROAD_ATRB_SRC_SE_CD: 'RSLK', ROAD_ATRB_CRTR_YMD: nz(L.upd),
-      _dist_m: Math.round(best * 100) / 100, _max_spd: L.spd,
-    });
-  }
-  out.sort((a, b) => a._dist_m - b._dist_m);
-  return { ok: true, count: Math.min(out.length, 5), radius_m: radius, candidates: out.slice(0, 5) };
+let TIDX = null;                       // roadtiles/index.json
+const TCACHE = new Map();              // 타일 캐시 — 같은 지역을 다시 조회하면 내려받지 않는다
+const DEMO_PTS = [
+  { nm: '정부대전청사 (특별·광역시도)', lat: 36.3600, lon: 127.3845 },
+  { nm: '광화문 (일반국도)', lat: 37.5720, lon: 126.9769 },
+  { nm: '서해안고속도로 (고속국도)', lat: 37.242063, lon: 126.880808 },
+  { nm: '지리산 자락 (도로 없음)', lat: 35.3370, lon: 127.7300 },
+];
+
+async function loadIndex() {
+  if (TIDX) return TIDX;
+  const r = await fetch('roadtiles/index.json');
+  if (!r.ok) throw new Error('타일 색인을 찾을 수 없습니다');
+  TIDX = await r.json();
+  return TIDX;
 }
-async function loadDemo() {
-  if (DEMO) return DEMO;
-  const r = await fetch('demo_links.json');
-  DEMO = await r.json();
+
+async function getTile(tx, ty) {
+  const k = tx + '_' + ty;
+  if (TCACHE.has(k)) return TCACHE.get(k);
+  if (!TIDX.tiles[k]) { TCACHE.set(k, null); return null; }      // 도로가 없는 칸
+  const r = await fetch(`roadtiles/${k}.json.gz`);
+  if (!r.ok) { TCACHE.set(k, null); return null; }
+  // 저장소 용량을 줄이려고 gzip 으로 두었다. 브라우저가 직접 푼다.
+  const txt = typeof DecompressionStream === 'function'
+    ? await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text()
+    : null;
+  if (txt === null) throw new Error('이 브라우저는 gzip 해제를 지원하지 않습니다');
+  const t = JSON.parse(txt);
+  TCACHE.set(k, t);
+  return t;
+}
+
+/* 위경도 → 반경 내 최근접 도로링크 (서버 API 와 같은 응답 형식) */
+async function roadMatch(lat, lon, radius) {
+  await loadIndex();
+  const [px, py] = toTM(lat, lon);
+  const size = TIDX.tile;
+  const t = await getTile(Math.floor(px / size), Math.floor(py / size));
+  const best = new Map();                 // 링크 하나가 여러 구간으로 나뉘어 있을 수 있다
+  if (t) {
+    const [ox, oy] = t.o;
+    for (const row of t.l) {
+      const g = row[7];
+      let x = ox, y = oy, d = Infinity, x0 = 0, y0 = 0;
+      for (let i = 0; i < g.length; i += 2) {
+        x += g[i]; y += g[i + 1];
+        if (i) { const dd = segDist(px, py, x0, y0, x, y); if (dd < d) d = dd; }
+        x0 = x; y0 = y;
+      }
+      if (d <= radius && (!best.has(row[0]) || best.get(row[0]).d > d)) best.set(row[0], { row, d });
+    }
+  }
+  const out = [...best.values()].sort((a, b) => a.d - b.d).slice(0, 5).map(({ row, d }) => ({
+    ROAD_LINK_ID: nz(row[0]), ROAD_GRD_SE_CD: nz(row[1]),
+    ROAD_GRD_SE_NM: GRD_NM[row[1]] || '',
+    ROAD_RTE_NO: nz(row[2]),
+    ROAD_NM: row[3] >= 0 ? t.n[row[3]] : null,
+    BTWYS_LANE_CNT: typeof row[4] === 'number' ? row[4] * 2 : null,
+    ROAD_ATRB_SRC_SE_CD: 'RSLK', ROAD_ATRB_CRTR_YMD: nz(row[6]),
+    _dist_m: Math.round(d * 100) / 100, _max_spd: row[5],
+  }));
+  return { ok: true, count: out.length, radius_m: radius, candidates: out };
+}
+
+function paintDemoPts() {
   const box = $('#demoPts');
   box.hidden = false;
-  box.innerHTML = '<p class="hint" style="margin:10px 0 6px">데모 지점 — 눌러서 좌표를 채운 뒤 [도로 자동조회]를 실행해 보세요.</p>' +
-    '<div class="rowbtns">' + DEMO.points.map((p, i) =>
-      `<button type="button" class="ghost dpt" data-i="${i}">${p.nm}</button>`).join('') + '</div>';
+  box.innerHTML = '<p class="hint" style="margin:10px 0 6px">전국 어느 좌표든 조회됩니다. ' +
+    '아래는 바로 눌러 볼 수 있는 예시 지점입니다.</p><div class="rowbtns">' +
+    DEMO_PTS.map((p, i) => `<button type="button" class="ghost dpt" data-i="${i}">${p.nm}</button>`).join('') +
+    '</div>';
   $$('.dpt', box).forEach((b) => b.onclick = () => {
-    const p = DEMO.points[+b.dataset.i];
+    const p = DEMO_PTS[+b.dataset.i];
     $('#LAT').value = p.lat; $('#LOT').value = p.lon;
     $('#matchBox').innerHTML = ''; doMatch();
   });
-  return DEMO;
 }
 
 /* ── 도로 매칭 ───────────────────────────────────────────── */
 let roadState = { src: null, link: null, crtr: null };
-let useDemo = false;   // 매칭 API 미연결 시 true
 const ROAD_FIELDS = ['ROAD_GRD_SE_CD', 'ROAD_RTE_NO', 'ROAD_NM', 'BTWYS_LANE_CNT'];
 
 function setRoadEnabled(on) { ROAD_FIELDS.forEach((f) => { $('#' + f).disabled = !on; }); }
@@ -641,26 +683,17 @@ async function doMatch() {
     box.innerHTML = '<div class="alert">대한민국 좌표 범위(위도 33~39, 경도 124~132)를 벗어났습니다.</div>'; return;
   }
   box.innerHTML = '<div class="alert">조회 중…</div>';
-  const radius = num('RADIUS') || 100;
+  const radius = Math.min(500, num('RADIUS') || 100);
   let j;
-  if (useDemo) {
-    try { await loadDemo(); j = demoMatch(lat, lon, radius); } catch (e) {
-      box.innerHTML = '<div class="alert">데모 자료를 읽지 못했습니다. 수동입력으로 전환하세요.</div>'; return;
-    }
-  } else {
-    try {
-      const r = await fetch(`${API}/api/road-link/match?lat=${lat}&lon=${lon}&radius=${radius}`);
-      j = await r.json();
-    } catch (e) {
-      box.innerHTML = '<div class="alert">매칭 API에 연결할 수 없습니다. 서버를 실행하거나 수동입력으로 전환하세요.<br>' +
-        '<code>python road_match_server.py</code></div>';
-      return;
-    }
+  try {
+    j = await roadMatch(lat, lon, radius);
+  } catch (e) {
+    box.innerHTML = `<div class="alert">도로망 자료를 읽지 못했습니다 (${e.message}). 수동입력으로 전환하세요.</div>`;
+    return;
   }
-  if (!j.ok) { box.innerHTML = `<div class="alert">${j.error || '조회 실패'}</div>`; return; }
   if (!j.count) {
     box.innerHTML = `<div class="alert">반경 ${j.radius_m}m 내에 도로 공간정보가 없습니다. 반경을 넓히거나 수동입력으로 전환하세요.` +
-      (useDemo ? '<br><span class="hint">데모 모드에서는 아래 데모 지점 주변에만 도로 자료가 들어 있습니다.</span>' : '') + '</div>';
+      '<br><span class="hint">반경을 넓히거나, 실제 횡단 도로가 표준노드링크에 없는 위치라면 수동입력을 쓰세요.</span></div>';
     return;
   }
   const multi = j.count > 1;
@@ -1257,30 +1290,22 @@ function toggleType() {
 }
 async function ping() {
   const d = $('#apiDot'), m = $('#apiMsg');
-  $('#apiUrl').textContent = API + '/api/road-link/match';
-  d.className = 'dot'; m.textContent = '도로 매칭 API 확인 중…';
+  $('#apiUrl').textContent = 'roadtiles/';
+  d.className = 'dot'; m.textContent = '도로망 자료 확인 중…';
   try {
-    const r = await fetch(`${API}/api/road-link/match?lat=37.5663&lon=126.9779&radius=60`);
-    const j = await r.json();
-    useDemo = false;
+    await loadIndex();
+    const n = Object.keys(TIDX.tiles).length;
+    const links = Object.values(TIDX.tiles).reduce((a, b) => a + b, 0);
     d.className = 'dot on';
-    m.innerHTML = `도로 매칭 API 연결됨 — 표준노드링크 전체(155만 건) 조회 가능 <span class="hint">(확인 질의 ${j.count}건)</span>`;
-    $('#demoPts').hidden = true;
+    m.innerHTML = `도로망 조회 준비됨 — 국토교통부 표준노드링크 전국 <b>${n.toLocaleString()}</b>개 타일 ` +
+      `<span class="hint">(링크 구간 ${links.toLocaleString()}개 · ${TIDX.tile / 1000}km 격자, 필요한 칸만 내려받음)</span>`;
+    paintDemoPts();
   } catch (e) {
-    // API가 없으면 내장 데모 자료로 자동 전환한다 — 검토용 배포(GitHub Pages)에서의 기본 동작
-    try {
-      await loadDemo();
-      useDemo = true;
-      d.className = 'dot on';
-      m.innerHTML = '<b>데모 모드</b> — 매칭 API 없이 내장 표본 자료(' + DEMO.links.length +
-        '개 링크)로 자동조회를 시연합니다. 전체 자료를 쓰려면 <code>python road_match_server.py</code> 실행.';
-    } catch (e2) {
-      useDemo = false;
-      d.className = 'dot off';
-      m.innerHTML = '매칭 API 미연결 — <b>수동입력</b>으로만 작성할 수 있습니다. 서버 실행: <code>python road_match_server.py</code>';
-    }
+    d.className = 'dot off';
+    m.innerHTML = '도로망 자료를 찾을 수 없습니다 — <b>수동입력</b>으로만 작성할 수 있습니다.';
   }
 }
+
 function sample() {
   $('#ECRD_NM').value = '정부대전청사앞 시험 생태통로';
   $('#LAT').value = '36.3600'; $('#LOT').value = '127.3845';
