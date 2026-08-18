@@ -212,7 +212,7 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
     <legend>위치 및 도로 (표준노드링크 자동 연계)</legend>
     <div class="note">
       <b>위경도를 입력하고 [도로 자동조회]</b>를 누르면 국토교통부 표준노드링크에서 해당 지점의 도로를 찾아 등급·노선번호·도로명·왕복차로수를 자동으로 채웁니다.
-      해당 위치에 도로 공간정보가 없으면 <b>수동입력</b>으로 전환되어 직접 기재할 수 있습니다. 어느 경로로 입력했는지는 <code>ROAD_ATRB_SRC_SE_CD</code>에 함께 저장됩니다.
+      해당 위치에 도로 공간정보가 없으면 <b>수동입력</b>으로 전환되어 직접 기재할 수 있습니다. 자동조회 건에만 <code>ROAD_LINK_ID</code>가 저장되므로, 이 값의 유무가 곧 취득 경로입니다.
     </div>
     <div class="grid">
       <div class="f"><label>위도 <span class="req">*</span></label><input id="LAT" type="number" step="0.0000001" placeholder="37.5663"></div>
@@ -271,8 +271,6 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
       <div class="f"><label>도로명</label><input id="ROAD_NM" maxlength="80" disabled></div>
       <div class="f"><label>왕복차로수</label><input id="BTWYS_LANE_CNT" type="number" min="1" max="99" disabled>
         <span class="hint">자동조회 시 표준노드링크 편도 차로수 × 2</span></div>
-      <div class="f"><span class="lbl">도로속성 출처</span>
-        <div class="calc" id="srcView">미입력</div></div>
       <div class="f"><span class="lbl">도로링크아이디</span><div class="calc" id="linkView">NULL</div></div>
       <div class="f"><span class="lbl">도로속성기준일자</span><div class="calc" id="crtrView">NULL</div></div>
     </div>
@@ -355,14 +353,14 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
   <fieldset>
     <legend>부대시설 설치 현황</legend>
     <div class="tblwrap"><table id="anxTbl">
-      <thead><tr><th>시설</th><th class="c">설치의무</th><th class="c">방향</th><th class="c">설치</th><th class="c">높이(m)</th><th class="c">길이(m)</th><th>비고</th></tr></thead>
+      <thead><tr><th>시설</th><th class="c">설치의무</th><th class="c">방향</th><th class="c">설치</th><th class="c">높이(m)</th><th class="c">길이(m)</th></tr></thead>
       <tbody></tbody>
     </table></div>
     <p class="hint" style="margin:8px 0 0">유도울타리류만 상행·하행을 구분하고 제원(높이·길이)을 기재합니다. 나머지 시설은 설치 유·무만 조사하므로 제원 칸이 없습니다.<br>
-      설치의무는 시설 종류에서 자동으로 정해지는 값이며, 여기서 고른 <b>설치 유·무</b>가 모니터링 탭의 점검 선택지를 결정합니다.</p>
+      설치의무는 부대시설 코드 자체의 속성(공통코드 CD06의 코드속성값)이라 생태통로마다 따로 저장하지 않습니다.
+      여기서 고른 <b>설치 유·무</b>가 모니터링 탭의 점검 선택지를 결정합니다.</p>
   </fieldset>
 
-  <div class="f wide"><label>비고내용</label><textarea id="RMRK_CN"></textarea></div>
 </section>
 
 <!-- ══════════ 2. 모니터링 ══════════ -->
@@ -418,7 +416,7 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
   <fieldset>
     <legend>동물 이용 현황</legend>
     <div class="tblwrap"><table id="anmlTbl">
-      <thead><tr><th>종 국명</th><th>학명</th><th class="c">조사방법</th><th class="c">이용빈도<br>(회/기간내)</th><th class="c">삭제</th></tr></thead>
+      <thead><tr><th>종 국명</th><th>학명 <span class="hint">(자동입력 예정)</span></th><th class="c">조사방법</th><th class="c">이용빈도<br>(회/기간내)</th><th class="c">삭제</th></tr></thead>
       <tbody></tbody></table></div>
     <div class="rowbtns"><button type="button" class="ghost sm" id="addAnml">+ 종 추가</button></div>
     <p class="hint" style="margin:8px 0 0">원본 서식의 고정 9칸 제약을 없앴습니다. 확인된 종 수만큼 행을 추가하세요.</p>
@@ -427,10 +425,12 @@ tr.pick{cursor:pointer} tr.pick:hover{background:var(--auto)}
   <fieldset>
     <legend>식생 조사</legend>
     <div class="tblwrap"><table id="plntTbl">
-      <thead><tr><th class="c">조사위치</th><th class="c">식생층</th><th>종 국명</th><th>학명</th><th class="c">우점</th><th class="c">삭제</th></tr></thead>
+      <thead><tr><th class="c">조사위치</th><th class="c">식생층</th><th>종 국명</th><th>학명 <span class="hint">(자동입력 예정)</span></th><th class="c">우점</th><th class="c">삭제</th></tr></thead>
       <tbody></tbody></table></div>
     <div class="rowbtns"><button type="button" class="ghost sm" id="addPlnt">+ 종 추가</button></div>
-    <p class="hint" style="margin:8px 0 0">우점종은 조사위치별 1종만 지정합니다. 별도의 '우점식물' 행을 두지 않고 목록에서 직접 표시합니다.</p>
+    <p class="hint" style="margin:8px 0 0">학명은 지금은 직접 적습니다 —
+      <b>종명 검색을 통한 자동입력 기능은 향후 추가</b>될 예정이며, 국가생물종목록(KTSN) 종코드도 그때 함께 채워집니다.<br>
+      우점종은 조사위치별 1종만 지정합니다. 별도의 '우점식물' 행을 두지 않고 목록에서 직접 표시합니다.</p>
     <div class="vsum" id="dspcsChk"></div>
   </fieldset>
 
@@ -496,9 +496,10 @@ const API = (location.protocol === 'http:' || location.protocol === 'https:')
   ? location.origin : 'http://127.0.0.1:8765';
 
 /* ── 코드 정의 (공통코드 시트와 동일) ───────────────────────── */
-/* [코드, 시설명, 방향구분여부, 설치의무구분코드(CD17)]
-   설치의무구분은 조사자가 고르는 값이 아니라 시설 종류에서 자동 부여된다(BR-52).
-   이 값이 미설치 시 모니터링에서 고를 수 있는 점검상태를 결정한다. */
+/* [코드, 시설명, 방향구분여부, 설치의무(CD17)]
+   설치의무는 생태통로마다 저장하는 값이 아니라 부대시설 코드 자체의 속성이다.
+   실제 구현에서는 TB_ECRD_COMCD 의 CD_GRP_ID='CD06' 행에서 CD_ATRB_VAL 을 읽어 온다(BR-52).
+   여기서는 코드 마스터를 그대로 옮겨 적었다. 이 값이 미설치 시 고를 수 있는 점검상태를 정한다. */
 const ANXFC = [
   ['AXWF', '유도울타리', true, 'OBMD'], ['AXSF', '소형동물 유도울타리', true, 'OBMD'],
   ['AXSW', '방음벽', false, 'OBMD'], ['AXBW', '보행로 구분 차단벽', false, 'OBRC'],
@@ -675,7 +676,7 @@ async function roadMatch(lat, lon, radius) {
     ROAD_RTE_NO: nz(row[2]),
     ROAD_NM: row[3] >= 0 ? t.n[row[3]] : null,
     BTWYS_LANE_CNT: typeof row[4] === 'number' ? row[4] * 2 : null,
-    ROAD_ATRB_SRC_SE_CD: 'RSLK', ROAD_ATRB_CRTR_YMD: nz(row[6]),
+    ROAD_ATRB_CRTR_YMD: nz(row[6]),
     _dist_m: Math.round(d * 100) / 100, _max_spd: row[5],
   }));
   return { ok: true, count: out.length, radius_m: radius, candidates: out };
@@ -1091,7 +1092,6 @@ function setRoadEnabled(on) { ROAD_FIELDS.forEach((f) => { $('#' + f).disabled =
 function paintRoadState() {
   const m = { RSLK: ['표준노드링크 자동매칭 (RSLK)', 'ok'], RSMN: ['조사자 수동입력 (RSMN)', 'warn'] };
   const s = m[roadState.src];
-  $('#srcView').innerHTML = s ? `<span class="pill ${s[1]}">${s[0]}</span>` : '미입력';
   $('#linkView').innerHTML = roadState.link ? roadState.link : '<span class="nul">NULL</span>';
   $('#crtrView').innerHTML = roadState.crtr ? roadState.crtr : '<span class="nul">NULL</span>';
   const g = $('#ROAD_GRD_SE_CD').value;
@@ -1114,7 +1114,7 @@ function goManual() {
   setRoadEnabled(true);
   $('#matchBox').innerHTML =
     '<div class="alert">수동입력 모드입니다. 해당 위치에 도로 공간정보가 없거나 매칭 결과가 실제와 다를 때 사용합니다. ' +
-    '도로링크아이디는 저장되지 않습니다(<code>ROAD_ATRB_SRC_SE_CD = RSMN</code>).</div>';
+    '도로링크아이디는 저장되지 않습니다(수동입력 건은 링크 ID가 공란).</div>';
   paintRoadState(); refresh();
 }
 async function doMatch() {
@@ -1170,7 +1170,7 @@ function buildAnxfc() {
         (dir ? `<td class="c"><input class="ax-hgt" type="number" step="0.001" disabled></td>
                 <td class="c"><input class="ax-len" type="number" step="0.001" disabled></td>`
              : (i === 0 ? `<td class="c" colspan="2" style="color:var(--sub);font-size:12px">해당 없음</td>` : ''))
-        + `<td><input class="ax-rmrk"></td>`;
+        ;
       tb.appendChild(tr);
     });
   });
@@ -1273,7 +1273,7 @@ function buildPayload() {
     ROAD_LINK_ID: roadState.link, ROAD_GRD_SE_CD: str('ROAD_GRD_SE_CD'),
     ROAD_RTE_NO: str('ROAD_RTE_NO'),
     ROAD_NM: str('ROAD_NM'), BTWYS_LANE_CNT: num('BTWYS_LANE_CNT'),
-    ROAD_ATRB_SRC_SE_CD: roadState.src, ROAD_ATRB_CRTR_YMD: roadState.crtr,
+    ROAD_ATRB_CRTR_YMD: roadState.crtr,
     ECRD_TYPE_CD: et,
     TNL_TYPE_CD: tn ? radio('tnt') : null,
     ECRD_LEN: ob ? num('OB_LEN') : (tn ? num('TN_LEN') : null),
@@ -1285,19 +1285,16 @@ function buildPayload() {
     RGSD_SLP_GRDNT_STBLT_SE_CD: critVal('RGSD_SLP_GRDNT_STBLT_SE_CD'),
     INSD_SOIL_DPTH_STBLT_SE_CD: critVal('INSD_SOIL_DPTH_STBLT_SE_CD'),
     ETC_USE_CMDTY_CN: radio('etcuse') === 'Y' ? str('ETC_USE_CMDTY_CN') : null,
-    RMRK_CN: str('RMRK_CN'),
     REG_STTS_SE_CD: REC.status, REG_CMPTN_DT: REC.cmptnDt,
   };
 
   const TB_ECRD_ANXFC = $$('#anxTbl tbody tr').map((tr) => {
     const on = $('.ax-en', tr).value === 'Y';
-    const h = $('.ax-hgt', tr), l = $('.ax-len', tr), r = $('.ax-rmrk', tr);
+    const h = $('.ax-hgt', tr), l = $('.ax-len', tr);
     return {
       ANXFC_SE_CD: tr.dataset.cd, INSTL_DRTN_SE_CD: tr.dataset.dir, INSTL_EN: on ? 'Y' : 'N',
-      INSTL_OBLG_SE_CD: tr.dataset.oblg,
       FCLT_HGT: on && h && h.value ? Number(h.value) : null,
       FCLT_LEN: on && l && l.value ? Number(l.value) : null,
-      RMRK_CN: r && r.value.trim() ? r.value.trim() : null,
     };
   });
 
@@ -1371,9 +1368,7 @@ function validate(p) {
     if (!E.TNL_TYPE_CD) e.push('BR-03: 터널형 단면형상 필수');
     if ([E.ECRD_LEN, E.ECRD_WDT, E.ECRD_HGT, E.ENTR_AREA].some((v) => v === null)) e.push('BR-02: 터널형 규격 필수');
   }
-  if (!E.ROAD_ATRB_SRC_SE_CD) e.push('BR-11/12: 도로속성 출처 미확정 (자동조회 또는 수동입력)');
-  if (E.ROAD_ATRB_SRC_SE_CD === 'RSLK' && !E.ROAD_LINK_ID) e.push('BR-11: 자동매칭 시 링크아이디 필수');
-  if (E.ROAD_ATRB_SRC_SE_CD === 'RSMN' && E.ROAD_LINK_ID) e.push('BR-12: 수동입력 시 링크아이디 금지');
+  if (!roadState.src) e.push('BR-11/12: 도로 정보 미확정 (자동조회 또는 수동입력)');
   if (!E.ROAD_GRD_SE_CD) e.push('BR: 도로등급 필수');
   CRIT.forEach(([k, nm]) => {
     if (!E[k]) e.push(`BR-07/08: ${nm} 통과 여부 미선택`);
@@ -1391,12 +1386,13 @@ function validate(p) {
     const a = anxBy[m.ANXFC_SE_CD + '|' + m.INSTL_DRTN_SE_CD];
     const label = `${m.ANXFC_SE_CD}(${DRTN[m.INSTL_DRTN_SE_CD]})`;
     if (!a) { e.push(`BR-51: ${label} 시설정보에 등록되지 않은 부대시설`); return; }
-    const allow = chckOptions(a.INSTL_EN, a.INSTL_OBLG_SE_CD);
+    const oblg = (ANXFC.find((x) => x[0] === a.ANXFC_SE_CD) || [])[3];   // 코드 마스터 조회에 해당
+    const allow = chckOptions(a.INSTL_EN, oblg);
     if (!allow.includes(m.CHCK_STTS_SE_CD))
-      e.push(`BR-22/24: ${label} 설치=${a.INSTL_EN}·의무=${a.INSTL_OBLG_SE_CD}에서 선택 불가한 점검상태(${m.CHCK_STTS_SE_CD})`);
+      e.push(`BR-22/24: ${label} 설치=${a.INSTL_EN}·의무=${oblg}에서 선택 불가한 점검상태(${m.CHCK_STTS_SE_CD})`);
     if (m.CHCK_STTS_SE_CD === 'CKRP' && !m.DMG_CN) e.push(`BR-23: ${label} 보수 필요 시 훼손내용 필수`);
     if (m.CHCK_STTS_SE_CD === 'CKIN')
-      w.push(a.INSTL_OBLG_SE_CD === 'OBMD' ? `${label} 필수 설치항목 미이행 — 설치 필요`
+      w.push(oblg === 'OBMD' ? `${label} 필수 설치항목 미이행 — 설치 필요`
                                            : `${label} 설치 권고항목 미설치 — 설치 필요로 기재됨`);
   });
   if (M.MNTR_BGNG_YMD && M.MNTR_END_YMD) {
@@ -1504,7 +1500,7 @@ function collectForm() {
     anx: $$('#anxTbl tbody tr').map((tr) => ({
       cd: tr.dataset.cd, dir: tr.dataset.dir, en: $('.ax-en', tr).value,
       hgt: ($('.ax-hgt', tr) || {}).value || '', len: ($('.ax-len', tr) || {}).value || '',
-      rmrk: ($('.ax-rmrk', tr) || {}).value || '' })),
+     })),
     mnx: $$('#mAnxTbl tbody tr').map((tr) => ({
       cd: tr.dataset.cd, dir: tr.dataset.dir,
       st: $('.mx-st', tr).value, dmg: $('.mx-dmg', tr).value })),
@@ -1544,7 +1540,6 @@ function applyForm(d) {
     $('.ax-en', tr).value = a.en;
     if ($('.ax-hgt', tr)) { $('.ax-hgt', tr).value = a.hgt; $('.ax-hgt', tr).disabled = a.en !== 'Y'; }
     if ($('.ax-len', tr)) { $('.ax-len', tr).value = a.len; $('.ax-len', tr).disabled = a.en !== 'Y'; }
-    if ($('.ax-rmrk', tr)) $('.ax-rmrk', tr).value = a.rmrk;
   });
   syncMntrAnxfc();
   (d.mnx || []).forEach((m) => {
